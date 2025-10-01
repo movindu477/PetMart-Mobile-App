@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'shop.dart'; // ✅ Import ShopPage
+import 'login.dart'; // ✅ Import LoginPage
+import 'cart.dart'; // ✅ Import CartPage
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -37,34 +40,29 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
-  /// ✅ Section Builder
+  /// ✅ Section Builder (for Home page)
   Widget buildSection({
     required String image,
     required String title,
     required String description,
     String? buttonText,
     VoidCallback? onButtonPressed,
-    bool isFirstSection = false,
   }) {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
-    if (isFirstSection && isLandscape) {
-      // 🔹 Landscape layout for first section
+    if (isLandscape) {
+      // Landscape → Row layout
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
               flex: 1,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.asset(
-                  image,
-                  fit: BoxFit.cover,
-                  height: 300,
-                ),
+                child: Image.asset(image, fit: BoxFit.cover, height: 280),
               ),
             ),
             const SizedBox(width: 20),
@@ -73,18 +71,18 @@ class _HomePageState extends State<HomePage>
               child: FadeTransition(
                 opacity: _fadeInAnimation,
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
                         style: const TextStyle(
-                          fontSize: 40,
+                          fontSize: 34,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                       Text(
                         description,
                         style: const TextStyle(fontSize: 18, height: 1.6),
@@ -96,7 +94,9 @@ class _HomePageState extends State<HomePage>
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.cyan,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 28, vertical: 14),
+                              horizontal: 26,
+                              vertical: 14,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -109,7 +109,7 @@ class _HomePageState extends State<HomePage>
                             ),
                           ),
                         ),
-                      ]
+                      ],
                     ],
                   ),
                 ),
@@ -119,25 +119,22 @@ class _HomePageState extends State<HomePage>
         ),
       );
     } else {
-      // 🔹 Default Portrait / Other Sections
+      // Portrait → Fullscreen background
       return Container(
         height: MediaQuery.of(context).size.height,
         width: double.infinity,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              image,
-              fit: BoxFit.cover,
-            ),
-            Container(
-              color: Colors.black.withOpacity(0.4),
-            ),
+            Image.asset(image, fit: BoxFit.cover),
+            Container(color: Colors.black.withOpacity(0.4)),
             FadeTransition(
               opacity: _fadeInAnimation,
               child: Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 32, vertical: 60),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 60,
+                ),
                 child: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -147,7 +144,7 @@ class _HomePageState extends State<HomePage>
                         title,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 52,
+                          fontSize: 48,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                           shadows: [
@@ -181,9 +178,11 @@ class _HomePageState extends State<HomePage>
                         ElevatedButton(
                           onPressed: onButtonPressed,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
+                            backgroundColor: Colors.blue[900],
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 28, vertical: 14),
+                              horizontal: 28,
+                              vertical: 14,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -196,7 +195,7 @@ class _HomePageState extends State<HomePage>
                             ),
                           ),
                         ),
-                      ]
+                      ],
                     ],
                   ),
                 ),
@@ -208,68 +207,55 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  /// Pages for Bottom Navigation
-  final List<Widget> _pages = [
-    // Home Section
+  /// ✅ Pages for BottomNavigationBar
+  List<Widget> get _pages => [
+    // Home Page
     SingleChildScrollView(
-      child: Column(
-        children: [
-          // Sections will be built inside build() below
-        ],
-      ),
-    ),
-    const Center(child: Text("Shop Page", style: TextStyle(fontSize: 22))),
-    const Center(child: Text("Cart Page", style: TextStyle(fontSize: 22))),
-    const Center(child: Text("Profile Page", style: TextStyle(fontSize: 22))),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    // Replace Home page content dynamically
-    _pages[0] = SingleChildScrollView(
       child: Column(
         children: [
           buildSection(
             image: "assets/section1.jpg",
             title: "Welcome to PetMart",
             description:
-            "Your one-stop shop for all pet essentials! From nutritious food to playful toys, "
-                "we bring the best for your furry, feathery, and scaly friends.",
-            isFirstSection: true,
+                "Your one-stop shop for all pet essentials! From nutritious food to playful toys, we bring the best for your furry, feathery, and scaly friends.",
           ),
           buildSection(
             image: "assets/section2.jpg",
             title: "About Us",
             description:
-            "At PetMart, we believe pets are family. With years of expertise and a passion for animals, "
-                "we provide top-quality products and trusted advice to ensure your pets live happy, healthy lives.",
-            buttonText: "Learn More",
-            onButtonPressed: () {},
+                "At PetMart, we believe pets are family. With years of expertise and a passion for animals, we provide top-quality products and trusted advice to ensure your pets live happy, healthy lives.",
           ),
           buildSection(
             image: "assets/section3.jpg",
             title: "Our Shop",
             description:
-            "Explore our wide range of pet supplies — premium foods, comfy bedding, grooming kits, "
-                "and exciting toys. Everything your pet needs, all under one roof.",
-            buttonText: "Go to Shop",
-            onButtonPressed: () {},
+                "Explore our wide range of pet supplies — premium foods, comfy bedding, grooming kits, and exciting toys. Everything your pet needs, all under one roof.",
           ),
           buildSection(
             image: "assets/section4.jpg",
             title: "Contact Us",
             description:
-            "Have questions? Need recommendations? Reach out to our friendly team for guidance, "
-                "support, or to find the perfect product for your pet.",
-            buttonText: "Contact Us",
-            onButtonPressed: () {},
+                "Have questions? Need recommendations? Reach out to our friendly team for guidance, support, or to find the perfect product for your pet.",
           ),
         ],
       ),
-    );
+    ),
 
+    // Placeholder Shop (opens separately)
+    const SizedBox(),
+
+    // Placeholder Cart (opens separately)
+    const SizedBox(),
+
+    // Placeholder Profile (opens separately)
+    const SizedBox(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         elevation: 2,
         centerTitle: true,
@@ -284,9 +270,11 @@ class _HomePageState extends State<HomePage>
         actions: [
           IconButton(
             onPressed: () {
-              setState(() {
-                _selectedIndex = 2; // jump to Cart tab
-              });
+              // ✅ Navigate directly to CartPage
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartPage()),
+              );
             },
             icon: const Icon(Icons.shopping_cart, color: Colors.blue),
           ),
@@ -294,35 +282,47 @@ class _HomePageState extends State<HomePage>
       ),
       body: _pages[_selectedIndex],
 
-      /// ✅ Bottom Navigation Bar
+      /// ✅ Fixed Bottom Navigation
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.blue[900],
         currentIndex: _selectedIndex,
         onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+          if (index == 1) {
+            // ✅ Navigate to ShopPage
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ShopPage()),
+            );
+          } else if (index == 2) {
+            // ✅ Navigate to CartPage
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CartPage()),
+            );
+          } else if (index == 3) {
+            // ✅ Navigate to LoginPage (Profile)
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            );
+          } else {
+            // ✅ Stay in Home tab
+            setState(() {
+              _selectedIndex = index;
+            });
+          }
         },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "Home",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.store),
-            label: "Shop",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.store), label: "Shop"),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_cart),
             label: "Cart",
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "Profile",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
     );

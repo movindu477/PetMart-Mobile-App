@@ -29,4 +29,13 @@ flutter:
     - assets/shop.png
     - assets/shop.jpg
     - assets/shopori.jpg
+    - assets/dog_food1.jpg
+    - assets/dog_food2.jpg
+    - assets/dog_food3.jpg
+    - assets/dog_food4.jpg
+    - assets/dog_food5.jpg
+    - assets/dog_food6.jpg
+    - assets/dog_food7.jpg
+    - assets/dog_food8.jpg
+    - assets/dog_food9.jpg
     # Removed assets/man.png since file doesn't exist

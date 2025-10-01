@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'homepage.dart'; // make sure this file exists and declares HomePage
+import 'homepage.dart';
+import 'shop.dart';
+import 'cart.dart'; // ✅ Import CartPage
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -20,6 +22,8 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _obscure = true;
   bool _isLoading = false;
+
+  int _selectedIndex = 3; // Default → Profile tab
 
   void _showMessage(String text, {Color bg = Colors.red}) {
     showDialog(
@@ -65,6 +69,37 @@ class _LoginPageState extends State<LoginPage> {
     if (mounted) setState(() => _isLoading = false);
   }
 
+  void _onItemTapped(int index) {
+    if (index == _selectedIndex) return;
+
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0: // Home
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomePage()),
+        );
+        break;
+      case 1: // Shop
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ShopPage()),
+        );
+        break;
+      case 2: // Cart ✅ Go to cart.dart
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const CartPage()),
+        );
+        break;
+      case 3: // Profile (LoginPage)
+        break;
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -76,6 +111,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+
       body: Center(
         child: Container(
           width: 350,
@@ -210,6 +246,25 @@ class _LoginPageState extends State<LoginPage> {
             ],
           ),
         ),
+      ),
+
+      // ✅ Fixed Bottom Navigation
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.blue[900],
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: Colors.white70,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.store), label: "Shop"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart),
+            label: "Cart",
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+        ],
       ),
     );
   }
