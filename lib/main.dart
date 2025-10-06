@@ -65,7 +65,7 @@ class _SplashScreenState extends State<SplashScreen>
         fit: StackFit.expand,
         children: [
           /// Background image
-          Image.asset("assets/main1.jpg", fit: BoxFit.cover),
+          Image.asset("images/main1.jpg", fit: BoxFit.cover),
 
           /// Overlay content
           Column(
@@ -75,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen>
 
               /// Logo at top center
               Center(
-                child: Image.asset("assets/logo.png", width: 200, height: 200),
+                child: Image.asset("images/logo.png", width: 200, height: 200),
               ),
               const Spacer(),
 

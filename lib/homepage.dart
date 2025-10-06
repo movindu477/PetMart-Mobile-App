@@ -214,25 +214,25 @@ class _HomePageState extends State<HomePage>
       child: Column(
         children: [
           buildSection(
-            image: "assets/section1.jpg",
+            image: "images/section1.jpg",
             title: "Welcome to PetMart",
             description:
                 "Your one-stop shop for all pet essentials! From nutritious food to playful toys, we bring the best for your furry, feathery, and scaly friends.",
           ),
           buildSection(
-            image: "assets/section2.jpg",
+            image: "images/section2.jpg",
             title: "About Us",
             description:
                 "At PetMart, we believe pets are family. With years of expertise and a passion for animals, we provide top-quality products and trusted advice to ensure your pets live happy, healthy lives.",
           ),
           buildSection(
-            image: "assets/section3.jpg",
+            image: "images/section3.jpg",
             title: "Our Shop",
             description:
                 "Explore our wide range of pet supplies — premium foods, comfy bedding, grooming kits, and exciting toys. Everything your pet needs, all under one roof.",
           ),
           buildSection(
-            image: "assets/section4.jpg",
+            image: "images/section4.jpg",
             title: "Contact Us",
             description:
                 "Have questions? Need recommendations? Reach out to our friendly team for guidance, support, or to find the perfect product for your pet.",

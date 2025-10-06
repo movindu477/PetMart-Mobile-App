@@ -13,13 +13,19 @@ class ShopPage extends StatefulWidget {
 class _ShopPageState extends State<ShopPage> {
   int _selectedIndex = 1;
 
-  final List<Map<String, String>> _products = List.generate(9, (index) {
+  // ✅ Sample Product List with Types
+  final List<Map<String, String>> _allProducts = List.generate(9, (index) {
     return {
-      "image": "assets/dog_food${index + 1}.jpg",
+      "image": "images/dog_food${index + 1}.jpg",
       "name": "Dog Food ${index + 1}",
       "desc": "Healthy and tasty meal for dogs.",
+      "petType": index % 2 == 0 ? "Dog" : "Cat",
+      "accessoryType": index % 3 == 0 ? "Toys" : "Food",
     };
   });
+
+  String? _selectedPetType;
+  String? _selectedAccessoryType;
 
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
@@ -37,13 +43,13 @@ class _ShopPageState extends State<ShopPage> {
         break;
       case 1: // Shop
         break;
-      case 2: // ✅ Cart
+      case 2: // Cart
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const CartPage()),
         );
         break;
-      case 3: // Profile → Login page
+      case 3: // Profile
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -52,14 +58,14 @@ class _ShopPageState extends State<ShopPage> {
     }
   }
 
-  /// ✅ Section (top banner)
+  /// ✅ Section (Top Banner)
   Widget _buildSection(BuildContext context) {
     return SizedBox(
       height: 200,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset("assets/shop.jpg", fit: BoxFit.cover),
+          Image.asset("images/shop.jpg", fit: BoxFit.cover),
           Container(color: Colors.black.withOpacity(0.3)),
           Padding(
             padding: const EdgeInsets.all(24.0),
@@ -94,8 +100,17 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
-  /// ✅ Product Grid
+  /// ✅ Filtered Product Grid
   Widget _buildProductGrid(bool isLandscape) {
+    final filteredProducts = _allProducts.where((product) {
+      final petTypeMatch =
+          _selectedPetType == null || product["petType"] == _selectedPetType;
+      final accessoryMatch =
+          _selectedAccessoryType == null ||
+          product["accessoryType"] == _selectedAccessoryType;
+      return petTypeMatch && accessoryMatch;
+    }).toList();
+
     final crossAxisCount = isLandscape ? 4 : 2;
     return GridView.builder(
       physics: const NeverScrollableScrollPhysics(),
@@ -107,9 +122,9 @@ class _ShopPageState extends State<ShopPage> {
         mainAxisSpacing: 16,
         childAspectRatio: 0.7,
       ),
-      itemCount: _products.length,
+      itemCount: filteredProducts.length,
       itemBuilder: (context, index) {
-        final product = _products[index];
+        final product = filteredProducts[index];
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -173,7 +188,10 @@ class _ShopPageState extends State<ShopPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text("Add to Cart"),
+                      child: const Text(
+                        "Add to Cart",
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ],
                 ),
@@ -182,6 +200,59 @@ class _ShopPageState extends State<ShopPage> {
           ),
         );
       },
+    );
+  }
+
+  /// ✅ Filter Dropdowns
+  Widget _buildFilters() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          // Pet Type Dropdown
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: _selectedPetType,
+              decoration: const InputDecoration(
+                labelText: "Pet Type",
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 10),
+              ),
+              items: const [
+                DropdownMenuItem(value: "Dog", child: Text("Dog")),
+                DropdownMenuItem(value: "Cat", child: Text("Cat")),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedPetType = value;
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Accessory Type Dropdown
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              value: _selectedAccessoryType,
+              decoration: const InputDecoration(
+                labelText: "Accessory Type",
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 10),
+              ),
+              items: const [
+                DropdownMenuItem(value: "Food", child: Text("Food")),
+                DropdownMenuItem(value: "Toys", child: Text("Toys")),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _selectedAccessoryType = value;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -213,6 +284,9 @@ class _ShopPageState extends State<ShopPage> {
 
               // Section
               _buildSection(context),
+
+              // Filters
+              _buildFilters(),
 
               // Product Grid
               _buildProductGrid(isLandscape),

@@ -130,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset("assets/logo.png", height: 80),
+              Image.asset("images/logo.png", height: 80),
               const SizedBox(height: 15),
               const Text(
                 "Hello Customer",
