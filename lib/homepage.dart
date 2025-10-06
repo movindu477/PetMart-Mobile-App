@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'shop.dart'; // ✅ Import ShopPage
-import 'login.dart'; // ✅ Import LoginPage
-import 'cart.dart'; // ✅ Import CartPage
+import 'shop.dart';
+import 'login.dart';
+import 'cart.dart';
+import 'about.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,23 +15,19 @@ class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeInAnimation;
-
   int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     );
-
     _fadeInAnimation = CurvedAnimation(
       parent: _controller,
       curve: Curves.easeIn,
     );
-
     _controller.forward();
   }
 
@@ -40,19 +37,17 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
-  /// ✅ Section Builder (for Home page)
+  ///  Reusable section builder with optional child (buttons)
   Widget buildSection({
     required String image,
     required String title,
     required String description,
-    String? buttonText,
-    VoidCallback? onButtonPressed,
+    Widget? child,
   }) {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
     if (isLandscape) {
-      // Landscape → Row layout
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -87,29 +82,7 @@ class _HomePageState extends State<HomePage>
                         description,
                         style: const TextStyle(fontSize: 18, height: 1.6),
                       ),
-                      if (buttonText != null && onButtonPressed != null) ...[
-                        const SizedBox(height: 20),
-                        ElevatedButton(
-                          onPressed: onButtonPressed,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.cyan,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 26,
-                              vertical: 14,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: Text(
-                            buttonText,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
+                      if (child != null) ...[const SizedBox(height: 20), child],
                     ],
                   ),
                 ),
@@ -119,7 +92,6 @@ class _HomePageState extends State<HomePage>
         ),
       );
     } else {
-      // Portrait → Fullscreen background
       return Container(
         height: MediaQuery.of(context).size.height,
         width: double.infinity,
@@ -173,29 +145,7 @@ class _HomePageState extends State<HomePage>
                           ],
                         ),
                       ),
-                      if (buttonText != null && onButtonPressed != null) ...[
-                        const SizedBox(height: 30),
-                        ElevatedButton(
-                          onPressed: onButtonPressed,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[900],
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 28,
-                              vertical: 14,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: Text(
-                            buttonText,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
+                      if (child != null) ...[const SizedBox(height: 30), child],
                     ],
                   ),
                 ),
@@ -207,47 +157,106 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  /// ✅ Pages for BottomNavigationBar
+  ///  Home Page Sections
   List<Widget> get _pages => [
-    // Home Page
     SingleChildScrollView(
       child: Column(
         children: [
+          // 🟦 Section 1 - Welcome (No buttons)
           buildSection(
             image: "images/section1.jpg",
             title: "Welcome to PetMart",
             description:
                 "Your one-stop shop for all pet essentials! From nutritious food to playful toys, we bring the best for your furry, feathery, and scaly friends.",
           ),
+
+          //  Section 2 - About Us + Button
           buildSection(
             image: "images/section2.jpg",
             title: "About Us",
             description:
                 "At PetMart, we believe pets are family. With years of expertise and a passion for animals, we provide top-quality products and trusted advice to ensure your pets live happy, healthy lives.",
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AboutPage()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[900],
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 14,
+                ),
+              ),
+              child: const Text(
+                "About Us",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
           ),
+
+          //  Section 3 - Shop + Button
           buildSection(
             image: "images/section3.jpg",
             title: "Our Shop",
             description:
                 "Explore our wide range of pet supplies — premium foods, comfy bedding, grooming kits, and exciting toys. Everything your pet needs, all under one roof.",
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ShopPage()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[900],
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 14,
+                ),
+              ),
+              child: const Text(
+                "Go to Shop",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
           ),
+
+          //  Section 4 - Contact Us Button
           buildSection(
             image: "images/section4.jpg",
             title: "Contact Us",
             description:
                 "Have questions? Need recommendations? Reach out to our friendly team for guidance, support, or to find the perfect product for your pet.",
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AboutPage()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[900],
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 14,
+                ),
+              ),
+              child: const Text(
+                "Contact Us",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
           ),
         ],
       ),
     ),
 
-    // Placeholder Shop (opens separately)
+    // Placeholder pages for navigation
     const SizedBox(),
-
-    // Placeholder Cart (opens separately)
     const SizedBox(),
-
-    // Placeholder Profile (opens separately)
     const SizedBox(),
   ];
 
@@ -270,7 +279,6 @@ class _HomePageState extends State<HomePage>
         actions: [
           IconButton(
             onPressed: () {
-              // ✅ Navigate directly to CartPage
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const CartPage()),
@@ -282,31 +290,26 @@ class _HomePageState extends State<HomePage>
       ),
       body: _pages[_selectedIndex],
 
-      /// ✅ Fixed Bottom Navigation
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.blue[900],
         currentIndex: _selectedIndex,
         onTap: (index) {
           if (index == 1) {
-            // ✅ Navigate to ShopPage
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const ShopPage()),
             );
           } else if (index == 2) {
-            // ✅ Navigate to CartPage
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const CartPage()),
             );
           } else if (index == 3) {
-            // ✅ Navigate to LoginPage (Profile)
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const LoginPage()),
             );
           } else {
-            // ✅ Stay in Home tab
             setState(() {
               _selectedIndex = index;
             });

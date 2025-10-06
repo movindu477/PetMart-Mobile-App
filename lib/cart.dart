@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'shop.dart';
+import 'cart_data.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -8,32 +10,17 @@ class CartPage extends StatefulWidget {
 }
 
 class _CartPageState extends State<CartPage> {
-  // ✅ Simple in-page cart list (instead of using cart_model or cart_service)
-  List<Map<String, dynamic>> cartItems = [
-    {
-      "name": "Dog Food 1",
-      "description": "Healthy meal for dogs",
-      "price": 15.00,
-      "quantity": 1,
-      "image": "images/dog_food1.jpg",
-    },
-    {
-      "name": "Cat Toy",
-      "description": "Fun toy for cats",
-      "price": 8.50,
-      "quantity": 2,
-      "image": "images/dog_food2.jpg",
-    },
-  ];
+  // Use global cart list
+  List<Map<String, dynamic>> get cartItems => globalCartItems;
 
-  // ✅ Calculate total price
+  // Calculate total price
   double get totalPrice {
     return cartItems.fold(0.0, (sum, item) {
       return sum + (item['price'] * item['quantity']);
     });
   }
 
-  // ✅ Update quantity
+  // Update quantity
   void _updateQuantity(int index, int newQuantity) {
     if (newQuantity <= 0) {
       _removeItem(index);
@@ -44,7 +31,7 @@ class _CartPageState extends State<CartPage> {
     }
   }
 
-  // ✅ Remove item
+  // Remove item
   void _removeItem(int index) {
     setState(() {
       cartItems.removeAt(index);
@@ -58,7 +45,7 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  // ✅ Clear entire cart
+  // Clear entire cart
   void _clearCart() {
     setState(() {
       cartItems.clear();
@@ -71,7 +58,7 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  // ✅ Build single cart item widget
+  // Build single cart
   Widget _buildCartItem(Map<String, dynamic> item, int index) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -80,7 +67,7 @@ class _CartPageState extends State<CartPage> {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            // Image
+            // 🖼 Image
             Container(
               width: 60,
               height: 60,
@@ -101,7 +88,7 @@ class _CartPageState extends State<CartPage> {
             ),
             const SizedBox(width: 12),
 
-            // Details
+            // 📝 Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +117,7 @@ class _CartPageState extends State<CartPage> {
               ),
             ),
 
-            // Quantity
+            // ➕➖ Quantity
             Column(
               children: [
                 Row(
@@ -164,7 +151,7 @@ class _CartPageState extends State<CartPage> {
               ],
             ),
 
-            // Delete
+            //Delete
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _removeItem(index),
@@ -175,111 +162,135 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
+  //back navigation to ShopPage
+  Future<bool> _onWillPop() async {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const ShopPage()),
+    );
+    return false; // Prevent default back
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Shopping Cart"),
-        backgroundColor: Colors.blue,
-        actions: [
-          if (cartItems.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.clear_all),
-              onPressed: _clearCart,
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ✅ Cart Summary
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text("Shopping Cart"),
+          backgroundColor: Colors.blue,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ShopPage()),
+              );
+            },
+          ),
+          actions: [
             if (cartItems.isNotEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                margin: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Items: ${cartItems.length}",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      "Total: \$${totalPrice.toStringAsFixed(2)}",
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-            // ✅ Cart Items
-            Expanded(
-              child: cartItems.isEmpty
-                  ? const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.shopping_cart_outlined,
-                            size: 80,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            "Your cart is empty",
-                            style: TextStyle(fontSize: 20, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: cartItems.length,
-                      itemBuilder: (context, index) {
-                        return _buildCartItem(cartItems[index], index);
-                      },
-                    ),
-            ),
-
-            // ✅ Place Order
-            if (cartItems.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.all(16),
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          "Order placed for ${cartItems.length} items! Total: \$${totalPrice.toStringAsFixed(2)}",
-                        ),
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                    setState(() {
-                      cartItems.clear();
-                    });
-                  },
-                  child: const Text(
-                    "Place Order",
-                    style: TextStyle(fontSize: 18, color: Colors.white),
-                  ),
-                ),
+              IconButton(
+                icon: const Icon(Icons.clear_all),
+                onPressed: _clearCart,
               ),
           ],
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // 🧾 Cart Summary
+              if (cartItems.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Items: ${cartItems.length}",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        "Total: \$${totalPrice.toStringAsFixed(2)}",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              //Cart Items
+              Expanded(
+                child: cartItems.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.shopping_cart_outlined,
+                              size: 80,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              "Your cart is empty",
+                              style: TextStyle(
+                                fontSize: 20,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: cartItems.length,
+                        itemBuilder: (context, index) {
+                          return _buildCartItem(cartItems[index], index);
+                        },
+                      ),
+              ),
+
+              // Place Order
+              if (cartItems.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            "Order placed for ${cartItems.length} items! Total: \$${totalPrice.toStringAsFixed(2)}",
+                          ),
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                      setState(() {
+                        cartItems.clear();
+                      });
+                    },
+                    child: const Text(
+                      "Place Order",
+                      style: TextStyle(fontSize: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

@@ -11,6 +11,7 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   http: ^1.2.0
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
@@ -28,13 +29,13 @@ flutter:
     - images/section4.jpg
     - images/shop.jpg
     - images/shopori.jpg
-    - images/caffood3.jpg
-    - images/caffood4.webp
-    - images/caffood5.webp
-    - images/caffood6.webp
-    - images/caffood7.webp
-    - images/caffood8.png
-    - images/caffood9.webp
+    # - images/caffood3.jpg
+    # - images/caffood4.webp
+    # - images/caffood5.webp
+    # - images/caffood6.webp
+    # - images/caffood7.webp
+    # - images/caffood8.png
+    # - images/caffood9.webp
     - images/cattoy1.webp
     - images/cattoy2.jpg
     - images/cattoy3.jpg
@@ -63,4 +64,6 @@ flutter:
     - images/dog_toy7.jpg
     - images/dog_toy8.webp
     - images/dog_toy9.jpg
-    # Removed assets/man.png since file doesn't exist
+    - images/about.jpg
+    - images/facebook.png
+    - images/instagram.png
