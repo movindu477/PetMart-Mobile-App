@@ -1,13 +1,7 @@
-// shop.dart
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-
 import 'homepage.dart';
 import 'login.dart';
 import 'cart.dart';
-import 'cart_model.dart';
-import 'cart_service.dart'; // Import the cart service
 
 class ShopPage extends StatefulWidget {
   const ShopPage({super.key});
@@ -18,43 +12,302 @@ class ShopPage extends StatefulWidget {
 
 class _ShopPageState extends State<ShopPage> {
   int _selectedIndex = 1;
-  List<dynamic> _products = [];
+
+  // ✅ Local product list with actual images from assets
+  final List<Map<String, dynamic>> _products = [
+    // Dog Food Products
+    {
+      "name": "Premium Dog Food",
+      "description": "Healthy dry food for adult dogs",
+      "price": 25.99,
+      "imageUrl": "images/dog_food1.jpg",
+      "petType": "Dog",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Dog Nutrition Mix",
+      "description": "Complete balanced diet for dogs",
+      "price": 32.50,
+      "imageUrl": "images/dog_food2.jpg",
+      "petType": "Dog",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Puppy Growth Food",
+      "description": "Specially formulated for puppies",
+      "price": 18.75,
+      "imageUrl": "images/dog_food3.jpg",
+      "petType": "Dog",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Dog Dental Care",
+      "description": "Dental health food for dogs",
+      "price": 22.99,
+      "imageUrl": "images/dog_food4.jpg",
+      "petType": "Dog",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Senior Dog Formula",
+      "description": "Special care for older dogs",
+      "price": 28.45,
+      "imageUrl": "images/dog_food5.jpg",
+      "petType": "Dog",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Active Dog Blend",
+      "description": "High energy food for active dogs",
+      "price": 26.80,
+      "imageUrl": "images/dog_food6.jpg",
+      "petType": "Dog",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Grain Free Dog Food",
+      "description": "Natural grain-free formula",
+      "price": 35.25,
+      "imageUrl": "images/dog_food7.jpg",
+      "petType": "Dog",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Weight Management",
+      "description": "Light formula for weight control",
+      "price": 24.99,
+      "imageUrl": "images/dog_food8.jpg",
+      "petType": "Dog",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Hypoallergenic Food",
+      "description": "For dogs with sensitive stomachs",
+      "price": 38.50,
+      "imageUrl": "images/dog_food9.jpg",
+      "petType": "Dog",
+      "accessoryType": "Food",
+    },
+
+    // Cat Food Products
+    {
+      "name": "Gourmet Cat Food",
+      "description": "Premium wet food for cats",
+      "price": 15.99,
+      "imageUrl": "images/caffood3.jpg",
+      "petType": "Cat",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Indoor Cat Formula",
+      "description": "Specially for indoor cats",
+      "price": 19.25,
+      "imageUrl": "images/caffood4.webp",
+      "petType": "Cat",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Kitten Growth Food",
+      "description": "Complete nutrition for kittens",
+      "price": 16.75,
+      "imageUrl": "images/caffood5.webp",
+      "petType": "Cat",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Hairball Control",
+      "description": "Reduces hairballs naturally",
+      "price": 21.50,
+      "imageUrl": "images/caffood6.webp",
+      "petType": "Cat",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Senior Cat Care",
+      "description": "Special formula for older cats",
+      "price": 23.99,
+      "imageUrl": "images/caffood7.webp",
+      "petType": "Cat",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Weight Control Cat",
+      "description": "Helps maintain healthy weight",
+      "price": 18.45,
+      "imageUrl": "images/caffood8.png",
+      "petType": "Cat",
+      "accessoryType": "Food",
+    },
+    {
+      "name": "Natural Cat Food",
+      "description": "Organic and natural ingredients",
+      "price": 27.80,
+      "imageUrl": "images/caffood9.webp",
+      "petType": "Cat",
+      "accessoryType": "Food",
+    },
+
+    // Dog Toy Products
+    {
+      "name": "Chew Bone Toy",
+      "description": "Durable chew toy for dogs",
+      "price": 12.99,
+      "imageUrl": "images/dog_toy1.jpg",
+      "petType": "Dog",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Interactive Ball",
+      "description": "Bouncing ball for fun playtime",
+      "price": 8.50,
+      "imageUrl": "images/dog_toy2.webp",
+      "petType": "Dog",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Rope Tug Toy",
+      "description": "Great for tug-of-war games",
+      "price": 9.75,
+      "imageUrl": "images/dog_toy3.webp",
+      "petType": "Dog",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Floating Frisbee",
+      "description": "Perfect for water and land play",
+      "price": 14.25,
+      "imageUrl": "images/dog_toy4.webp",
+      "petType": "Dog",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Squeaky Plush Toy",
+      "description": "Soft plush with squeaker",
+      "price": 11.99,
+      "imageUrl": "images/dog_toy5.jpg",
+      "petType": "Dog",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Treat Puzzle Toy",
+      "description": "Mental stimulation toy",
+      "price": 16.50,
+      "imageUrl": "images/dog_toy6.jpg",
+      "petType": "Dog",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Rubber Chew Toy",
+      "description": "Long-lasting rubber material",
+      "price": 13.25,
+      "imageUrl": "images/dog_toy7.jpg",
+      "petType": "Dog",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Fetch Stick",
+      "description": "Easy to throw and fetch",
+      "price": 7.99,
+      "imageUrl": "images/dog_toy8.webp",
+      "petType": "Dog",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Training Discs",
+      "description": "For agility and training",
+      "price": 19.75,
+      "imageUrl": "images/dog_toy9.jpg",
+      "petType": "Dog",
+      "accessoryType": "Toys",
+    },
+
+    // Cat Toy Products
+    {
+      "name": "Feather Wand Toy",
+      "description": "Interactive feather play",
+      "price": 6.99,
+      "imageUrl": "images/cattoy1.webp",
+      "petType": "Cat",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Catnip Mouse",
+      "description": "Plush mouse with catnip",
+      "price": 4.50,
+      "imageUrl": "images/cattoy2.jpg",
+      "petType": "Cat",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Laser Pointer",
+      "description": "Endless chasing fun",
+      "price": 8.25,
+      "imageUrl": "images/cattoy3.jpg",
+      "petType": "Cat",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Ball Track Toy",
+      "description": "Circular ball track game",
+      "price": 15.99,
+      "imageUrl": "images/cattoy4.jpg",
+      "petType": "Cat",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Crinkle Ball",
+      "description": "Makes fun crinkle sounds",
+      "price": 3.75,
+      "imageUrl": "images/cattoy5.jpg",
+      "petType": "Cat",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Interactive Tunnel",
+      "description": "Collapsible play tunnel",
+      "price": 22.50,
+      "imageUrl": "images/cattoy6.jpg",
+      "petType": "Cat",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Scratching Post",
+      "description": "Sisal rope scratching post",
+      "price": 28.99,
+      "imageUrl": "images/cattoy7.jpg",
+      "petType": "Cat",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Electronic Mouse",
+      "description": "Moves randomly for chase",
+      "price": 18.75,
+      "imageUrl": "images/cattoy8.webp",
+      "petType": "Cat",
+      "accessoryType": "Toys",
+    },
+    {
+      "name": "Cat Tree House",
+      "description": "Multi-level cat activity center",
+      "price": 45.99,
+      "imageUrl": "images/cattoy9.jpg",
+      "petType": "Cat",
+      "accessoryType": "Toys",
+    },
+  ];
+
+  // ✅ Local cart item list (works with CartPage too)
+  final List<Map<String, dynamic>> _cartItems = [];
+
   String? _selectedPetType;
   String? _selectedAccessoryType;
-  bool _isLoading = false;
 
-  final CartService _cartService = CartService();
-  final String _baseUrl = "https://10.0.2.2:7123";
+  // ✅ Add product to cart
+  void _addToCart(Map<String, dynamic> product) {
+    setState(() {
+      _cartItems.add({...product, "quantity": 1});
+    });
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchProducts(); // initial load
-  }
-
-  // Add product to cart using the service
-  void _addToCart(dynamic product) {
-    // Generate a unique ID for the cart item
-    final String itemId = '${product['name']}_${DateTime.now().millisecondsSinceEpoch}';
-
-    final cartItem = CartItem(
-      id: itemId,
-      name: product['name'] ?? 'No Name',
-      description: product['description'] ?? 'No description',
-      price: (product['price'] ?? 0.0).toDouble(),
-      imageUrl: product['imageUrl'] ?? '',
-      petType: product['petType'] ?? '',
-      accessoryType: product['accessoriesType'] ?? '',
-      quantity: 1,
-    );
-
-    // Use the cart service to add item
-    _cartService.addToCart(cartItem);
-
-    // Update UI to reflect cart count
-    setState(() {});
-
-    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("${product['name']} added to cart ✅"),
@@ -62,80 +315,29 @@ class _ShopPageState extends State<ShopPage> {
         action: SnackBarAction(
           label: 'View Cart',
           onPressed: () {
-            _onItemTapped(2); // Navigate to cart
+            _onItemTapped(2); // Go to cart
           },
         ),
       ),
     );
-
-    debugPrint("🛒 Cart items: ${_cartService.cartItems.length}");
   }
 
-  Future<void> _fetchProducts() async {
-    if (mounted) {
-      setState(() {
-        _isLoading = true;
-      });
-    }
-
-    try {
-      final queryParams = <String, String>{};
-      if (_selectedPetType != null && _selectedPetType!.isNotEmpty) {
-        queryParams['petType'] = _selectedPetType!;
-      }
-      if (_selectedAccessoryType != null && _selectedAccessoryType!.isNotEmpty) {
-        queryParams['accessoriesType'] = _selectedAccessoryType!;
-      }
-
-      final uri = Uri.parse("$_baseUrl/api/Pets/filter")
-          .replace(queryParameters: queryParams);
-
-      debugPrint("🌐 Fetching from: $uri");
-
-      final response = await http.get(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      ).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        if (mounted) {
-          setState(() {
-            _products = data;
-            _isLoading = false;
-          });
-        }
-        debugPrint("✅ Loaded ${data.length} products");
-      } else {
-        debugPrint("❌ Failed to load products: ${response.statusCode}");
-        debugPrint("Response body: ${response.body}");
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-        }
-      }
-    } catch (e) {
-      debugPrint("⚠️ Error: $e");
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed to load products: $e"),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+  // ✅ Filter products based on selected dropdowns
+  List<Map<String, dynamic>> get _filteredProducts {
+    return _products.where((product) {
+      final matchPet =
+          _selectedPetType == null ||
+          _selectedPetType!.isEmpty ||
+          product['petType'] == _selectedPetType;
+      final matchAccessory =
+          _selectedAccessoryType == null ||
+          _selectedAccessoryType!.isEmpty ||
+          product['accessoryType'] == _selectedAccessoryType;
+      return matchPet && matchAccessory;
+    }).toList();
   }
 
+  // ✅ Handle bottom navigation
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
 
@@ -167,6 +369,7 @@ class _ShopPageState extends State<ShopPage> {
     }
   }
 
+  // ✅ Top banner section
   Widget _buildSection(BuildContext context) {
     return SizedBox(
       height: 200,
@@ -202,6 +405,7 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
+  // ✅ Dropdown filter section
   Widget _buildFilters() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -224,7 +428,6 @@ class _ShopPageState extends State<ShopPage> {
                 setState(() {
                   _selectedPetType = value;
                 });
-                _fetchProducts();
               },
             ),
           ),
@@ -241,12 +444,15 @@ class _ShopPageState extends State<ShopPage> {
                 DropdownMenuItem(value: null, child: Text("All Accessories")),
                 DropdownMenuItem(value: "Food", child: Text("Food")),
                 DropdownMenuItem(value: "Toys", child: Text("Toys")),
+                DropdownMenuItem(
+                  value: "Accessories",
+                  child: Text("Accessories"),
+                ),
               ],
               onChanged: (value) {
                 setState(() {
                   _selectedAccessoryType = value;
                 });
-                _fetchProducts();
               },
             ),
           ),
@@ -255,28 +461,11 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
-  Widget _buildLoadingIndicator() {
-    return const Padding(
-      padding: EdgeInsets.all(40.0),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text("Loading products..."),
-          ],
-        ),
-      ),
-    );
-  }
-
+  // ✅ Grid of products
   Widget _buildProductGrid(bool isLandscape) {
-    if (_isLoading) {
-      return _buildLoadingIndicator();
-    }
+    final products = _filteredProducts;
 
-    if (_products.isEmpty) {
+    if (products.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(40.0),
         child: Center(
@@ -311,9 +500,9 @@ class _ShopPageState extends State<ShopPage> {
         mainAxisSpacing: 16,
         childAspectRatio: 0.7,
       ),
-      itemCount: _products.length,
+      itemCount: products.length,
       itemBuilder: (context, index) {
-        final product = _products[index];
+        final product = products[index];
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -334,27 +523,17 @@ class _ShopPageState extends State<ShopPage> {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(12),
                   ),
-                  child: Image.network(
-                    product["imageUrl"] ?? "https://via.placeholder.com/150",
+                  child: Image.asset(
+                    product["imageUrl"],
                     fit: BoxFit.cover,
                     width: double.infinity,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: Colors.grey[200],
-                        child: const Icon(Icons.image, size: 50, color: Colors.grey),
-                      );
-                    },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        color: Colors.grey[200],
-                        child: Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                                : null,
-                          ),
+                        child: const Icon(
+                          Icons.image,
+                          size: 50,
+                          color: Colors.grey,
                         ),
                       );
                     },
@@ -366,7 +545,7 @@ class _ShopPageState extends State<ShopPage> {
                 child: Column(
                   children: [
                     Text(
-                      product["name"] ?? "No Name",
+                      product["name"],
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -377,7 +556,7 @@ class _ShopPageState extends State<ShopPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      product["description"] ?? "No description",
+                      product["description"],
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 12,
@@ -388,7 +567,7 @@ class _ShopPageState extends State<ShopPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "\$${product["price"]?.toStringAsFixed(2) ?? "N/A"}",
+                      "\$${product["price"].toStringAsFixed(2)}",
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -458,73 +637,14 @@ class _ShopPageState extends State<ShopPage> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white70,
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.store), label: "Shop"),
           BottomNavigationBarItem(
-            icon: Stack(
-              children: [
-                const Icon(Icons.store),
-                if (_cartService.cartItemCount > 0)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 12,
-                        minHeight: 12,
-                      ),
-                      child: Text(
-                        _cartService.cartItemCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            label: "Shop",
-          ),
-          BottomNavigationBarItem(
-            icon: Stack(
-              children: [
-                const Icon(Icons.shopping_cart),
-                if (_cartService.cartItemCount > 0)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 12,
-                        minHeight: 12,
-                      ),
-                      child: Text(
-                        _cartService.cartItemCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            icon: Icon(Icons.shopping_cart),
             label: "Cart",
           ),
-          const BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),
     );

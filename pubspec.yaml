@@ -26,7 +26,41 @@ flutter:
     - images/section2.jpg
     - images/section3.jpg
     - images/section4.jpg
-#    - images/home.png
     - images/shop.jpg
     - images/shopori.jpg
+    - images/caffood3.jpg
+    - images/caffood4.webp
+    - images/caffood5.webp
+    - images/caffood6.webp
+    - images/caffood7.webp
+    - images/caffood8.png
+    - images/caffood9.webp
+    - images/cattoy1.webp
+    - images/cattoy2.jpg
+    - images/cattoy3.jpg
+    - images/cattoy4.jpg
+    - images/cattoy5.jpg
+    - images/cattoy6.jpg
+    - images/cattoy7.jpg
+    - images/cattoy8.webp
+    - images/cattoy9.jpg
+    - images/delete.png
+    - images/dog_food1.jpg
+    - images/dog_food2.jpg
+    - images/dog_food3.jpg
+    - images/dog_food4.jpg
+    - images/dog_food5.jpg
+    - images/dog_food6.jpg
+    - images/dog_food7.jpg
+    - images/dog_food8.jpg
+    - images/dog_food9.jpg
+    - images/dog_toy1.jpg
+    - images/dog_toy2.webp
+    - images/dog_toy3.webp
+    - images/dog_toy4.webp
+    - images/dog_toy5.jpg
+    - images/dog_toy6.jpg
+    - images/dog_toy7.jpg
+    - images/dog_toy8.webp
+    - images/dog_toy9.jpg
     # Removed assets/man.png since file doesn't exist
