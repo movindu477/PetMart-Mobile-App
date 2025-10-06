@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'homepage.dart';
 import 'shop.dart';
-import 'cart.dart'; // ✅ Import CartPage
+import 'cart.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,7 +14,6 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Hard-coded users
   final Map<String, String> _users = {
     'm@gmail.com': '2005',
     'jane@gmail.com': 'pass1234',
@@ -22,10 +21,9 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _obscure = true;
   bool _isLoading = false;
+  int _selectedIndex = 3;
 
-  int _selectedIndex = 3; // Default → Profile tab
-
-  void _showMessage(String text, {Color bg = Colors.red}) {
+  void _showMessage(String text) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -51,11 +49,9 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     setState(() => _isLoading = true);
-
     await Future.delayed(const Duration(milliseconds: 400));
 
     final correct = _users[email];
-
     if (correct != null && correct == password) {
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -71,31 +67,19 @@ class _LoginPageState extends State<LoginPage> {
 
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
-
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
 
     switch (index) {
-      case 0: // Home
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
+      case 0:
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomePage()));
         break;
-      case 1: // Shop
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ShopPage()),
-        );
+      case 1:
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ShopPage()));
         break;
-      case 2: // Cart ✅ Go to cart.dart
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const CartPage()),
-        );
+      case 2:
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const CartPage()));
         break;
-      case 3: // Profile (LoginPage)
+      case 3:
         break;
     }
   }
@@ -111,144 +95,118 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
-      body: Center(
-        child: Container(
-          width: 350,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 5),
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Container(
+              width: 350, // ✅ Fixed: Use width instead of maxWidth
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset("images/logo.png", height: 80),
-              const SizedBox(height: 15),
-              const Text(
-                "Hello Customer",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 25),
-
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Email",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 5),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: "Enter your email",
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  "Password",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 5),
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscure,
-                decoration: InputDecoration(
-                  hintText: "Enter your password",
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscure ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.grey[600],
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscure = !_obscure;
-                      });
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Rest of your login form content remains the same...
+                  Image.asset(
+                    "images/logo.png",
+                    height: 80,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        height: 80,
+                        width: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.pets, size: 40, color: Colors.blue),
+                      );
                     },
                   ),
-                ),
-              ),
-              const SizedBox(height: 25),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Welcome to Petmart",
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 5),
+                  const Text(
+                    "Sign in to your account",
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 25),
 
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handleLogin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  // Email Field
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text("Email", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  ),
+                  const SizedBox(height: 5),
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      hintText: "Enter your email",
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.0,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text(
-                          "Login",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                ),
+                  const SizedBox(height: 15),
+
+                  // Password Field
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text("Password", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  ),
+                  const SizedBox(height: 5),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: _obscure,
+                    decoration: InputDecoration(
+                      hintText: "Enter your password",
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: Colors.grey[600]),
+                        onPressed: () => setState(() => _obscure = !_obscure),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+
+                  // Login Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2.0, color: Colors.white))
+                          : const Text("Login", style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
-
-      // ✅ Fixed Bottom Navigation
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.blue[900],
         currentIndex: _selectedIndex,
@@ -259,10 +217,7 @@ class _LoginPageState extends State<LoginPage> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.store), label: "Shop"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: "Cart",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "Cart"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),

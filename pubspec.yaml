@@ -26,8 +26,7 @@ flutter:
     - images/section2.jpg
     - images/section3.jpg
     - images/section4.jpg
-    - images/home.png
-    - images/shop.png
+#    - images/home.png
     - images/shop.jpg
     - images/shopori.jpg
     # Removed assets/man.png since file doesn't exist
