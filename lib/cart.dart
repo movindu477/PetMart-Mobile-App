@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'shop.dart';
 import 'cart_data.dart';
+import 'payment.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -58,7 +59,7 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  // Build single cart
+  //Singleitem widget
   Widget _buildCartItem(Map<String, dynamic> item, int index) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -88,7 +89,7 @@ class _CartPageState extends State<CartPage> {
             ),
             const SizedBox(width: 12),
 
-            // 📝 Details
+            // Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +108,7 @@ class _CartPageState extends State<CartPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "\$${item['price'].toStringAsFixed(2)}",
+                    "Rs ${item['price'].toStringAsFixed(2)}",
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.green,
@@ -117,7 +118,7 @@ class _CartPageState extends State<CartPage> {
               ),
             ),
 
-            // ➕➖ Quantity
+            //Quantity
             Column(
               children: [
                 Row(
@@ -145,7 +146,7 @@ class _CartPageState extends State<CartPage> {
                   ],
                 ),
                 Text(
-                  "\$${(item['price'] * item['quantity']).toStringAsFixed(2)}",
+                  "Rs ${(item['price'] * item['quantity']).toStringAsFixed(2)}",
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
@@ -218,7 +219,7 @@ class _CartPageState extends State<CartPage> {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        "Total: \$${totalPrice.toStringAsFixed(2)}",
+                        "Total: Rs ${totalPrice.toStringAsFixed(2)}",
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -260,28 +261,24 @@ class _CartPageState extends State<CartPage> {
                       ),
               ),
 
-              // Place Order
+              // Go to Payment Page
               if (cartItems.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.all(16),
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: const Color.fromARGB(255, 0, 0, 0),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "Order placed for ${cartItems.length} items! Total: \$${totalPrice.toStringAsFixed(2)}",
-                          ),
-                          duration: const Duration(seconds: 3),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              PaymentPage(cartItems: cartItems),
                         ),
                       );
-                      setState(() {
-                        cartItems.clear();
-                      });
                     },
                     child: const Text(
                       "Place Order",
