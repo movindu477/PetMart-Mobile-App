@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'homepage.dart';
 import 'login.dart';
 import 'cart.dart';
-import 'cart_data.dart';
+import '../models/cart_data.dart';
 
 class ShopPage extends StatefulWidget {
   const ShopPage({super.key});
@@ -14,7 +14,6 @@ class ShopPage extends StatefulWidget {
 class _ShopPageState extends State<ShopPage> {
   int _selectedIndex = 1;
 
-  //  Local product list with actual images from assets
   final List<Map<String, dynamic>> _products = [
     {
       "name": "Premium Dog Food",
@@ -88,8 +87,6 @@ class _ShopPageState extends State<ShopPage> {
       "petType": "Dog",
       "accessoryType": "Food",
     },
-
-    // Cat Food Products
     {
       "name": "Gourmet Cat Food",
       "description": "Premium wet food for cats",
@@ -146,8 +143,6 @@ class _ShopPageState extends State<ShopPage> {
       "petType": "Cat",
       "accessoryType": "Food",
     },
-
-    // Dog Toy Products
     {
       "name": "Chew Bone Toy",
       "description": "Durable chew toy for dogs",
@@ -220,8 +215,6 @@ class _ShopPageState extends State<ShopPage> {
       "petType": "Dog",
       "accessoryType": "Toys",
     },
-
-    // Cat Toy Products
     {
       "name": "Feather Wand Toy",
       "description": "Interactive feather play",
@@ -296,16 +289,11 @@ class _ShopPageState extends State<ShopPage> {
     },
   ];
 
-  //  Local cart item list (works with CartPage too)
-  final List<Map<String, dynamic>> _cartItems = [];
-
   String? _selectedPetType;
   String? _selectedAccessoryType;
 
-  // Add product to cart
   void _addToCart(Map<String, dynamic> product) {
     setState(() {
-      //Check if already in cart
       final existingIndex = globalCartItems.indexWhere(
         (item) => item['name'] == product['name'],
       );
@@ -318,7 +306,7 @@ class _ShopPageState extends State<ShopPage> {
           "description": product["description"],
           "price": product["price"],
           "quantity": 1,
-          "image": product["imageUrl"], //Use correct key
+          "image": product["imageUrl"],
         });
       }
     });
@@ -330,14 +318,13 @@ class _ShopPageState extends State<ShopPage> {
         action: SnackBarAction(
           label: 'View Cart',
           onPressed: () {
-            _onItemTapped(2); //Go to cart
+            _onItemTapped(2);
           },
         ),
       ),
     );
   }
 
-  // Filter products based on selected dropdowns
   List<Map<String, dynamic>> get _filteredProducts {
     return _products.where((product) {
       final matchPet =
@@ -352,7 +339,6 @@ class _ShopPageState extends State<ShopPage> {
     }).toList();
   }
 
-  //  Handle bottom navigation
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
 
@@ -384,7 +370,6 @@ class _ShopPageState extends State<ShopPage> {
     }
   }
 
-  //  Top banner section
   Widget _buildSection(BuildContext context) {
     return SizedBox(
       height: 200,
@@ -420,7 +405,6 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
-  //  Dropdown filter section
   Widget _buildFilters() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -476,7 +460,6 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
-  //  Grid of products
   Widget _buildProductGrid(bool isLandscape) {
     final products = _filteredProducts;
 
@@ -665,3 +648,4 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 }
+

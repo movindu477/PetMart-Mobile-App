@@ -44,8 +44,6 @@ class _PaymentPageState extends State<PaymentPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Order placed successfully!')));
-
-    // You can clear the cart globally here if needed
   }
 
   @override
@@ -75,7 +73,6 @@ class _PaymentPageState extends State<PaymentPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //Cart Table
             const Text(
               "Your Cart",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -142,10 +139,7 @@ class _PaymentPageState extends State<PaymentPage> {
               "Total: Rs $totalAmount",
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-
             const SizedBox(height: 20),
-
-            //Address Section
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -175,10 +169,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
-
-            //Payment Method
             const Text(
               "Payment Method",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -203,10 +194,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 });
               },
             ),
-
             const SizedBox(height: 20),
-
-            // Place Order Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -252,3 +240,4 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 }
+

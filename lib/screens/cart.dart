@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'shop.dart';
-import 'cart_data.dart';
+import '../models/cart_data.dart';
 import 'payment.dart';
 
 class CartPage extends StatefulWidget {
@@ -11,17 +11,14 @@ class CartPage extends StatefulWidget {
 }
 
 class _CartPageState extends State<CartPage> {
-  // Use global cart list
   List<Map<String, dynamic>> get cartItems => globalCartItems;
 
-  // Calculate total price
   double get totalPrice {
     return cartItems.fold(0.0, (sum, item) {
       return sum + (item['price'] * item['quantity']);
     });
   }
 
-  // Update quantity
   void _updateQuantity(int index, int newQuantity) {
     if (newQuantity <= 0) {
       _removeItem(index);
@@ -32,7 +29,6 @@ class _CartPageState extends State<CartPage> {
     }
   }
 
-  // Remove item
   void _removeItem(int index) {
     setState(() {
       cartItems.removeAt(index);
@@ -46,7 +42,6 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  // Clear entire cart
   void _clearCart() {
     setState(() {
       cartItems.clear();
@@ -59,7 +54,6 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  //Singleitem widget
   Widget _buildCartItem(Map<String, dynamic> item, int index) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -68,7 +62,6 @@ class _CartPageState extends State<CartPage> {
         padding: const EdgeInsets.all(12),
         child: Row(
           children: [
-            // 🖼 Image
             Container(
               width: 60,
               height: 60,
@@ -88,8 +81,6 @@ class _CartPageState extends State<CartPage> {
               ),
             ),
             const SizedBox(width: 12),
-
-            // Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,8 +108,6 @@ class _CartPageState extends State<CartPage> {
                 ],
               ),
             ),
-
-            //Quantity
             Column(
               children: [
                 Row(
@@ -151,8 +140,6 @@ class _CartPageState extends State<CartPage> {
                 ),
               ],
             ),
-
-            //Delete
             IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _removeItem(index),
@@ -163,13 +150,12 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  //back navigation to ShopPage
   Future<bool> _onWillPop() async {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const ShopPage()),
     );
-    return false; // Prevent default back
+    return false;
   }
 
   @override
@@ -201,7 +187,6 @@ class _CartPageState extends State<CartPage> {
         body: SafeArea(
           child: Column(
             children: [
-              // 🧾 Cart Summary
               if (cartItems.isNotEmpty)
                 Container(
                   width: double.infinity,
@@ -229,8 +214,6 @@ class _CartPageState extends State<CartPage> {
                     ],
                   ),
                 ),
-
-              //Cart Items
               Expanded(
                 child: cartItems.isEmpty
                     ? const Center(
@@ -260,8 +243,6 @@ class _CartPageState extends State<CartPage> {
                         },
                       ),
               ),
-
-              // Go to Payment Page
               if (cartItems.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -293,3 +274,4 @@ class _CartPageState extends State<CartPage> {
     );
   }
 }
+

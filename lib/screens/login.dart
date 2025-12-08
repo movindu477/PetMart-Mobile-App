@@ -199,9 +199,7 @@ class _LoginPageState extends State<LoginPage> {
                       style: TextStyle(fontSize: 14, color: _isDarkMode ? Colors.white70 : Colors.grey),
                     ),
                     const SizedBox(height: 25),
-
                     if (_loggedEmail == null) ...[
-                      // Email
                       const Align(
                         alignment: Alignment.centerLeft,
                         child: Text("Email", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
@@ -220,8 +218,6 @@ class _LoginPageState extends State<LoginPage> {
                         style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black),
                       ),
                       const SizedBox(height: 15),
-
-                      // Password
                       const Align(
                         alignment: Alignment.centerLeft,
                         child: Text("Password", style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
@@ -244,8 +240,6 @@ class _LoginPageState extends State<LoginPage> {
                         style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black),
                       ),
                       const SizedBox(height: 25),
-
-                      // Login button
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -264,7 +258,6 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ] else ...[
-                      //Dark Mode Toggle
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -287,8 +280,6 @@ class _LoginPageState extends State<LoginPage> {
                         ],
                       ),
                       const SizedBox(height: 20),
-
-                      // Logout button
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -329,3 +320,4 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 }
+

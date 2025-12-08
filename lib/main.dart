@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'homepage.dart';
+import 'screens/homepage.dart';
 
 void main() {
-  // ✅ Add this for HTTPS certificate handling in development
   HttpOverrides.global = MyHttpOverrides();
   runApp(const PetShopApp());
 }
 
-// ✅ HTTP Override for SSL certificate issues in development
 class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
@@ -54,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3), // splash runs for 3 seconds
+      duration: const Duration(seconds: 3),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -75,10 +73,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _startAnimations() async {
-    // Start the animation
     _controller.forward();
-
-    // Wait for animation to complete, then navigate
     await Future.delayed(const Duration(seconds: 3));
 
     if (mounted) {
@@ -102,7 +97,6 @@ class _SplashScreenState extends State<SplashScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          /// Background image with fade effect
           FadeTransition(
             opacity: _fadeAnimation,
             child: Image.asset(
@@ -116,17 +110,12 @@ class _SplashScreenState extends State<SplashScreen>
               },
             ),
           ),
-
-          /// Dark overlay for better text visibility
           Container(
             color: Colors.black.withOpacity(0.2),
           ),
-
-          /// Content
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              /// Animated Logo
               ScaleTransition(
                 scale: _scaleAnimation,
                 child: Column(
@@ -152,8 +141,6 @@ class _SplashScreenState extends State<SplashScreen>
                       },
                     ),
                     const SizedBox(height: 20),
-
-                    /// App Name with fade animation
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: const Text(
@@ -166,10 +153,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
-                    /// Tagline with fade animation
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: const Text(
@@ -184,15 +168,11 @@ class _SplashScreenState extends State<SplashScreen>
                   ],
                 ),
               ),
-
               const Spacer(),
-
-              /// Loading indicator section
               Padding(
                 padding: const EdgeInsets.only(bottom: 60.0),
                 child: Column(
                   children: [
-                    /// Loading text
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: const Text(
@@ -203,10 +183,7 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    /// Animated loading line
                     SizedBox(
                       height: 4,
                       width: MediaQuery.of(context).size.width * 0.6,
@@ -224,10 +201,7 @@ class _SplashScreenState extends State<SplashScreen>
                         },
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
-                    /// Percentage indicator
                     AnimatedBuilder(
                       animation: _controller,
                       builder: (context, child) {

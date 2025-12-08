@@ -37,7 +37,6 @@ class _HomePageState extends State<HomePage>
     super.dispose();
   }
 
-  ///  Reusable section builder with optional child (buttons)
   Widget buildSection({
     required String image,
     required String title,
@@ -157,20 +156,16 @@ class _HomePageState extends State<HomePage>
     }
   }
 
-  ///  Home Page Sections
   List<Widget> get _pages => [
     SingleChildScrollView(
       child: Column(
         children: [
-          // 🟦 Section 1 - Welcome (No buttons)
           buildSection(
             image: "images/section1.jpg",
             title: "Welcome to PetMart",
             description:
                 "Your one-stop shop for all pet essentials! From nutritious food to playful toys, we bring the best for your furry, feathery, and scaly friends.",
           ),
-
-          //  Section 2 - About Us + Button
           buildSection(
             image: "images/section2.jpg",
             title: "About Us",
@@ -196,8 +191,6 @@ class _HomePageState extends State<HomePage>
               ),
             ),
           ),
-
-          //  Section 3 - Shop + Button
           buildSection(
             image: "images/section3.jpg",
             title: "Our Shop",
@@ -223,8 +216,6 @@ class _HomePageState extends State<HomePage>
               ),
             ),
           ),
-
-          //  Section 4 - Contact Us Button
           buildSection(
             image: "images/section4.jpg",
             title: "Contact Us",
@@ -253,8 +244,6 @@ class _HomePageState extends State<HomePage>
         ],
       ),
     ),
-
-    // Placeholder pages for navigation
     const SizedBox(),
     const SizedBox(),
     const SizedBox(),
@@ -289,7 +278,6 @@ class _HomePageState extends State<HomePage>
         ],
       ),
       body: _pages[_selectedIndex],
-
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.blue[900],
         currentIndex: _selectedIndex,
@@ -331,3 +319,4 @@ class _HomePageState extends State<HomePage>
     );
   }
 }
+
