@@ -11,67 +11,175 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeInAnimation;
-  late Animation<Offset> _slideAnimation;
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int _selectedIndex = 0;
+  late ScrollController _scrollController;
+  late List<AnimationController> _animationControllers;
+  late List<Animation<double>> _fadeAnimations;
+  late List<Animation<Offset>> _slideAnimations;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
+    _scrollController = ScrollController();
+    _animationControllers = List.generate(
+      4,
+      (index) => AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: 600 + (index * 100)),
+      ),
     );
-    _fadeInAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutCubic,
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _controller.forward();
+    _fadeAnimations = _animationControllers
+        .map(
+          (controller) => Tween<double>(begin: 0.0, end: 1.0).animate(
+            CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
+          ),
+        )
+        .toList();
+    _slideAnimations = _animationControllers
+        .map(
+          (controller) =>
+              Tween<Offset>(
+                begin: const Offset(0, 0.3),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
+              ),
+        )
+        .toList();
+
+    Future.delayed(const Duration(milliseconds: 100), () {
+      for (var controller in _animationControllers) {
+        controller.forward();
+      }
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _scrollController.dispose();
+    for (var controller in _animationControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
-  Widget buildSection({
+  Widget _buildHeroSection() {
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isTablet = screenWidth >= 600;
+
+    return FadeTransition(
+      opacity: _fadeAnimations[0],
+      child: SlideTransition(
+        position: _slideAnimations[0],
+        child: Container(
+          height: isTablet ? screenHeight * 0.5 : screenHeight * 0.45,
+          width: double.infinity,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(
+                "images/mainback1.avif",
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: theme.colorScheme.surfaceVariant,
+                    child: Icon(
+                      Icons.pets,
+                      size: 100,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  );
+                },
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.3),
+                      Colors.black.withOpacity(0.7),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.all(isTablet ? 40 : 24),
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Text(
+                        "Welcome to PetMart",
+                        style: theme.textTheme.displayMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -1,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withOpacity(0.5),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection({
     required String image,
     required String title,
     required String description,
-    Widget? child,
+    required int index,
+    Widget? actionButton,
   }) {
     final theme = Theme.of(context);
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 600;
 
-    if (isLandscape) {
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return FadeTransition(
+      opacity: _fadeAnimations[index],
+      child: SlideTransition(
+        position: _slideAnimations[index],
+        child: Container(
+          margin: EdgeInsets.symmetric(
+            horizontal: isTablet ? 24 : 16,
+            vertical: 12,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
+          child: Card(
+            elevation: 4,
+            shadowColor: Colors.black.withOpacity(0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  flex: 1,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: AspectRatio(
-                      aspectRatio: 1.2,
-                      child: Image.asset(
+                Container(
+                  height: isTablet ? 280 : 220,
+                  width: double.infinity,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
                         image,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
@@ -79,150 +187,62 @@ class _HomePageState extends State<HomePage>
                             color: theme.colorScheme.surfaceVariant,
                             child: Icon(
                               Icons.pets,
-                              size: 64,
+                              size: 80,
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                           );
                         },
                       ),
-                    ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.6),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 24),
-                Expanded(
-                  flex: 1,
-                  child: FadeTransition(
-                    opacity: _fadeInAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            title,
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            description,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              height: 1.6,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          if (child != null) ...[
-                            const SizedBox(height: 24),
-                            child,
-                          ],
-                        ],
+                Padding(
+                  padding: EdgeInsets.all(isTablet ? 28 : 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.5,
+                          fontSize: isTablet ? 32 : 28,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      Text(
+                        description,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          height: 1.6,
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: isTablet ? 17 : 15,
+                        ),
+                      ),
+                      if (actionButton != null) ...[
+                        const SizedBox(height: 24),
+                        actionButton,
+                      ],
+                    ],
                   ),
                 ),
               ],
             ),
           ),
         ),
-      );
-    } else {
-      return Container(
-        height: MediaQuery.of(context).size.height,
-        width: double.infinity,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.asset(
-              image,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: theme.colorScheme.surfaceVariant,
-                  child: Icon(
-                    Icons.pets,
-                    size: 100,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                );
-              },
-            ),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.5),
-                    Colors.black.withOpacity(0.7),
-                  ],
-                ),
-              ),
-            ),
-            FadeTransition(
-              opacity: _fadeInAnimation,
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 40,
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            title,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.displaySmall?.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              letterSpacing: -1,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withOpacity(0.5),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          Text(
-                            description,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: Colors.white,
-                              height: 1.6,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withOpacity(0.4),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (child != null) ...[
-                            const SizedBox(height: 32),
-                            child,
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+      ),
+    );
   }
 
   @override
@@ -233,12 +253,12 @@ class _HomePageState extends State<HomePage>
       appBar: AppBar(
         automaticallyImplyLeading: false,
         elevation: 0,
-        scrolledUnderElevation: 1,
+        scrolledUnderElevation: 2,
         centerTitle: true,
         title: Text(
           "PetMart",
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
             letterSpacing: 0.5,
           ),
         ),
@@ -257,21 +277,20 @@ class _HomePageState extends State<HomePage>
         ],
       ),
       body: SingleChildScrollView(
+        controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            buildSection(
-              image: "images/section1.jpg",
-              title: "Welcome to PetMart",
-              description:
-                  "Your one-stop shop for all pet essentials! From nutritious food to playful toys, we bring the best for your furry, feathery, and scaly friends.",
-            ),
-            buildSection(
-              image: "images/section2.jpg",
+            _buildHeroSection(),
+            const SizedBox(height: 24),
+            _buildSection(
+              image: "images/mainback2.avif",
               title: "About Us",
               description:
                   "At PetMart, we believe pets are family. With years of expertise and a passion for animals, we provide top-quality products and trusted advice to ensure your pets live happy, healthy lives.",
-              child: FilledButton.icon(
+              index: 1,
+              actionButton: FilledButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -279,24 +298,25 @@ class _HomePageState extends State<HomePage>
                   );
                 },
                 icon: const Icon(Icons.info_outline),
-                label: const Text("About Us"),
+                label: const Text("Learn More"),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 16,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
               ),
             ),
-            buildSection(
-              image: "images/section3.jpg",
+            _buildSection(
+              image: "images/mainback3.avif",
               title: "Our Shop",
               description:
                   "Explore our wide range of pet supplies — premium foods, comfy bedding, grooming kits, and exciting toys. Everything your pet needs, all under one roof.",
-              child: FilledButton.icon(
+              index: 2,
+              actionButton: FilledButton.icon(
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,
@@ -304,24 +324,25 @@ class _HomePageState extends State<HomePage>
                   );
                 },
                 icon: const Icon(Icons.store),
-                label: const Text("Go to Shop"),
+                label: const Text("Explore Shop"),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 16,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
               ),
             ),
-            buildSection(
+            _buildSection(
               image: "images/section4.jpg",
               title: "Contact Us",
               description:
                   "Have questions? Need recommendations? Reach out to our friendly team for guidance, support, or to find the perfect product for your pet.",
-              child: FilledButton.icon(
+              index: 3,
+              actionButton: FilledButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -329,75 +350,126 @@ class _HomePageState extends State<HomePage>
                   );
                 },
                 icon: const Icon(Icons.contact_support_outlined),
-                label: const Text("Contact Us"),
+                label: const Text("Get in Touch"),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 16,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
               ),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          if (index == _selectedIndex) return;
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFE3F2FD),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (index) {
+            if (index == _selectedIndex) return;
 
-          setState(() {
-            _selectedIndex = index;
-          });
+            setState(() {
+              _selectedIndex = index;
+            });
 
-          switch (index) {
-            case 0:
-              break;
-            case 1:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ShopPage()),
-              );
-              break;
-            case 2:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const CartPage()),
-              );
-              break;
-            case 3:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-              );
-              break;
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: "Home",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.store_outlined),
-            selectedIcon: Icon(Icons.store),
-            label: "Shop",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.shopping_cart_outlined),
-            selectedIcon: Icon(Icons.shopping_cart),
-            label: "Cart",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: "Profile",
-          ),
-        ],
+            switch (index) {
+              case 0:
+                break;
+              case 1:
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ShopPage()),
+                );
+                break;
+              case 2:
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CartPage()),
+                );
+                break;
+              case 3:
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                );
+                break;
+            }
+          },
+          backgroundColor: const Color(0xFFE3F2FD),
+          elevation: 8,
+          height: 70,
+          indicatorColor: const Color(0xFF64B5F6),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          animationDuration: const Duration(milliseconds: 400),
+          destinations: [
+            NavigationDestination(
+              icon: Icon(
+                Icons.home_outlined,
+                color: Colors.blueGrey[600],
+                size: 26,
+              ),
+              selectedIcon: const Icon(
+                Icons.home,
+                color: Colors.white,
+                size: 26,
+              ),
+              label: "Home",
+            ),
+            NavigationDestination(
+              icon: Icon(
+                Icons.store_outlined,
+                color: Colors.blueGrey[600],
+                size: 26,
+              ),
+              selectedIcon: const Icon(
+                Icons.store,
+                color: Colors.white,
+                size: 26,
+              ),
+              label: "Shop",
+            ),
+            NavigationDestination(
+              icon: Icon(
+                Icons.shopping_cart_outlined,
+                color: Colors.blueGrey[600],
+                size: 26,
+              ),
+              selectedIcon: const Icon(
+                Icons.shopping_cart,
+                color: Colors.white,
+                size: 26,
+              ),
+              label: "Cart",
+            ),
+            NavigationDestination(
+              icon: Icon(
+                Icons.person_outline,
+                color: Colors.blueGrey[600],
+                size: 26,
+              ),
+              selectedIcon: const Icon(
+                Icons.person,
+                color: Colors.white,
+                size: 26,
+              ),
+              label: "Profile",
+            ),
+          ],
+        ),
       ),
     );
   }

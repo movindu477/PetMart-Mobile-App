@@ -473,31 +473,81 @@ class _CartPageState extends State<CartPage> {
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onItemTapped,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: "Home",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.store_outlined),
-            selectedIcon: Icon(Icons.store),
-            label: "Shop",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.shopping_cart_outlined),
-            selectedIcon: Icon(Icons.shopping_cart),
-            label: "Cart",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: "Profile",
-          ),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFE3F2FD),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: NavigationBar(
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: _onItemTapped,
+          backgroundColor: const Color(0xFFE3F2FD),
+          elevation: 8,
+          height: 70,
+          indicatorColor: const Color(0xFF64B5F6),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          animationDuration: const Duration(milliseconds: 400),
+          destinations: [
+            NavigationDestination(
+              icon: Icon(
+                Icons.home_outlined,
+                color: Colors.blueGrey[600],
+                size: 26,
+              ),
+              selectedIcon: const Icon(
+                Icons.home,
+                color: Colors.white,
+                size: 26,
+              ),
+              label: "Home",
+            ),
+            NavigationDestination(
+              icon: Icon(
+                Icons.store_outlined,
+                color: Colors.blueGrey[600],
+                size: 26,
+              ),
+              selectedIcon: const Icon(
+                Icons.store,
+                color: Colors.white,
+                size: 26,
+              ),
+              label: "Shop",
+            ),
+            NavigationDestination(
+              icon: Icon(
+                Icons.shopping_cart_outlined,
+                color: Colors.blueGrey[600],
+                size: 26,
+              ),
+              selectedIcon: const Icon(
+                Icons.shopping_cart,
+                color: Colors.white,
+                size: 26,
+              ),
+              label: "Cart",
+            ),
+            NavigationDestination(
+              icon: Icon(
+                Icons.person_outline,
+                color: Colors.blueGrey[600],
+                size: 26,
+              ),
+              selectedIcon: const Icon(
+                Icons.person,
+                color: Colors.white,
+                size: 26,
+              ),
+              label: "Profile",
+            ),
+          ],
+        ),
       ),
     );
   }
