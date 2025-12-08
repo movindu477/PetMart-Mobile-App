@@ -29,13 +29,7 @@ flutter:
     - images/section4.jpg
     - images/shop.jpg
     - images/shopori.jpg
-    # - images/caffood3.jpg
-    # - images/caffood4.webp
-    # - images/caffood5.webp
-    # - images/caffood6.webp
-    # - images/caffood7.webp
-    # - images/caffood8.png
-    # - images/caffood9.webp
+    - images/mainback3.avif
     - images/cattoy1.webp
     - images/cattoy2.jpg
     - images/cattoy3.jpg

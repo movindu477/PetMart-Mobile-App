@@ -13,6 +13,7 @@ class ShopPage extends StatefulWidget {
 
 class _ShopPageState extends State<ShopPage> {
   int _selectedIndex = 1;
+  final ScrollController _scrollController = ScrollController();
 
   final List<Map<String, dynamic>> _products = [
     {
@@ -85,62 +86,6 @@ class _ShopPageState extends State<ShopPage> {
       "price": 38.50,
       "imageUrl": "images/dog_food9.jpg",
       "petType": "Dog",
-      "accessoryType": "Food",
-    },
-    {
-      "name": "Gourmet Cat Food",
-      "description": "Premium wet food for cats",
-      "price": 15.99,
-      "imageUrl": "images/caffood3.jpg",
-      "petType": "Cat",
-      "accessoryType": "Food",
-    },
-    {
-      "name": "Indoor Cat Formula",
-      "description": "Specially for indoor cats",
-      "price": 19.25,
-      "imageUrl": "images/caffood4.webp",
-      "petType": "Cat",
-      "accessoryType": "Food",
-    },
-    {
-      "name": "Kitten Growth Food",
-      "description": "Complete nutrition for kittens",
-      "price": 16.75,
-      "imageUrl": "images/caffood5.webp",
-      "petType": "Cat",
-      "accessoryType": "Food",
-    },
-    {
-      "name": "Hairball Control",
-      "description": "Reduces hairballs naturally",
-      "price": 21.50,
-      "imageUrl": "images/caffood6.webp",
-      "petType": "Cat",
-      "accessoryType": "Food",
-    },
-    {
-      "name": "Senior Cat Care",
-      "description": "Special formula for older cats",
-      "price": 23.99,
-      "imageUrl": "images/caffood7.webp",
-      "petType": "Cat",
-      "accessoryType": "Food",
-    },
-    {
-      "name": "Weight Control Cat",
-      "description": "Helps maintain healthy weight",
-      "price": 18.45,
-      "imageUrl": "images/caffood8.png",
-      "petType": "Cat",
-      "accessoryType": "Food",
-    },
-    {
-      "name": "Natural Cat Food",
-      "description": "Organic and natural ingredients",
-      "price": 27.80,
-      "imageUrl": "images/caffood9.webp",
-      "petType": "Cat",
       "accessoryType": "Food",
     },
     {
@@ -292,6 +237,12 @@ class _ShopPageState extends State<ShopPage> {
   String? _selectedPetType;
   String? _selectedAccessoryType;
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   void _addToCart(Map<String, dynamic> product) {
     setState(() {
       final existingIndex = globalCartItems.indexWhere(
@@ -313,13 +264,30 @@ class _ShopPageState extends State<ShopPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("${product['name']} added to cart ✅"),
+        content: Row(
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                "${product['name']} added to cart",
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
         duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         action: SnackBarAction(
           label: 'View Cart',
-          onPressed: () {
-            _onItemTapped(2);
-          },
+          textColor: Theme.of(context).colorScheme.onPrimary,
+          onPressed: () => _onItemTapped(2),
         ),
       ),
     );
@@ -331,11 +299,13 @@ class _ShopPageState extends State<ShopPage> {
           _selectedPetType == null ||
           _selectedPetType!.isEmpty ||
           product['petType'] == _selectedPetType;
-      final matchAccessory =
+
+      final matchAcc =
           _selectedAccessoryType == null ||
           _selectedAccessoryType!.isEmpty ||
           product['accessoryType'] == _selectedAccessoryType;
-      return matchPet && matchAccessory;
+
+      return matchPet && matchAcc;
     }).toList();
   }
 
@@ -370,116 +340,278 @@ class _ShopPageState extends State<ShopPage> {
     }
   }
 
-  Widget _buildSection(BuildContext context) {
-    return SizedBox(
-      height: 200,
+  Widget _buildHeroSection() {
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isTablet = screenWidth >= 600;
+
+    return Container(
+      height: isTablet ? screenHeight * 0.28 : screenHeight * 0.24,
+      margin: EdgeInsets.symmetric(
+        horizontal: isTablet ? 20 : 16,
+        vertical: 12,
+      ),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset("images/shop.jpg", fit: BoxFit.cover),
-          Container(color: Colors.black.withOpacity(0.3)),
-          const Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Welcome to Petmart",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Image.asset(
+              "images/mainback3.avif",
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: theme.colorScheme.surfaceVariant,
+                  child: Icon(
+                    Icons.store,
+                    size: 64,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                );
+              },
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.35),
+                  Colors.black.withOpacity(0.65),
+                ],
+              ),
+            ),
+          ),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Welcome to PetMart",
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.5),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Find everything your pet needs – food, toys, accessories, and more.",
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: Colors.white,
+                      fontSize: 16,
+                      height: 1.5,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black.withOpacity(0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCard(Map<String, dynamic> product, double width) {
+    final theme = Theme.of(context);
+
+    return Card(
+      elevation: 4,
+      shadowColor: theme.colorScheme.shadow.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        color: theme.colorScheme.surface,
+        child: InkWell(
+          onTap: () {},
+          borderRadius: BorderRadius.circular(20),
+          splashColor: theme.colorScheme.primary.withOpacity(0.1),
+          highlightColor: theme.colorScheme.primary.withOpacity(0.05),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: 6,
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                      child: Image.asset(
+                        product["imageUrl"],
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: theme.colorScheme.surfaceVariant,
+                            child: Icon(
+                              Icons.image_outlined,
+                              size: 48,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surface.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.favorite_border,
+                          size: 18,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                flex: 4,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 10,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          product["name"],
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Flexible(
+                        child: Text(
+                          product["description"],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            "\$${product["price"].toStringAsFixed(2)}",
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: theme.colorScheme.primary,
+                              fontSize: 15,
+                            ),
+                          ),
+                          FilledButton(
+                            onPressed: () => _addToCart(product),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              minimumSize: const Size(0, 32),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Icon(
+                              Icons.shopping_cart_outlined,
+                              size: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 12),
-                Text(
-                  "Find everything your pet needs – food, toys, accessories, and more.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.white70),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildFilters() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: _selectedPetType,
-              decoration: const InputDecoration(
-                labelText: "Pet Type",
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10),
-              ),
-              items: const [
-                DropdownMenuItem(value: null, child: Text("All Pets")),
-                DropdownMenuItem(value: "Dog", child: Text("Dog")),
-                DropdownMenuItem(value: "Cat", child: Text("Cat")),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedPetType = value;
-                });
-              },
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: DropdownButtonFormField<String>(
-              value: _selectedAccessoryType,
-              decoration: const InputDecoration(
-                labelText: "Accessory Type",
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10),
-              ),
-              items: const [
-                DropdownMenuItem(value: null, child: Text("All Accessories")),
-                DropdownMenuItem(value: "Food", child: Text("Food")),
-                DropdownMenuItem(value: "Toys", child: Text("Toys")),
-                DropdownMenuItem(
-                  value: "Accessories",
-                  child: Text("Accessories"),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedAccessoryType = value;
-                });
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductGrid(bool isLandscape) {
+  Widget _buildProductGrid() {
+    final theme = Theme.of(context);
     final products = _filteredProducts;
+    final width = MediaQuery.of(context).size.width;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
 
     if (products.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(40.0),
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: width * 0.05, vertical: 80),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.inventory_2, size: 64, color: Colors.grey),
-              SizedBox(height: 16),
+              Icon(
+                Icons.inventory_2_outlined,
+                size: 80,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 24),
               Text(
                 "No products found",
-                style: TextStyle(fontSize: 18, color: Colors.grey),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 "Try changing your filters",
-                style: TextStyle(color: Colors.grey),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),
@@ -487,165 +619,130 @@ class _ShopPageState extends State<ShopPage> {
       );
     }
 
-    final crossAxisCount = isLandscape ? 4 : 2;
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      padding: const EdgeInsets.all(16),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 0.7,
+    int crossAxisCount = 2;
+    double childAspectRatio = 0.70;
+    double spacing = 12;
+
+    if (width >= 1200) {
+      crossAxisCount = 5;
+      childAspectRatio = 0.70;
+      spacing = 16;
+    } else if (width >= 900) {
+      crossAxisCount = 4;
+      childAspectRatio = 0.70;
+      spacing = 16;
+    } else if (width >= 600) {
+      crossAxisCount = 3;
+      childAspectRatio = 0.70;
+      spacing = 14;
+    } else if (isLandscape) {
+      crossAxisCount = 3;
+      childAspectRatio = 0.70;
+      spacing = 12;
+    } else {
+      childAspectRatio = 0.70;
+    }
+
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing * 0.8,
+        vertical: spacing * 0.5,
       ),
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        final product = products[index];
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 5,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(12),
-                  ),
-                  child: Image.asset(
-                    product["imageUrl"],
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey[200],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  children: [
-                    Text(
-                      product["name"],
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      product["description"],
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "\$${product["price"].toStringAsFixed(2)}",
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        _addToCart(product);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
-                        minimumSize: const Size.fromHeight(35),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        "Add to Cart",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: products.length,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: spacing,
+          mainAxisSpacing: spacing,
+          childAspectRatio: childAspectRatio,
+        ),
+        itemBuilder: (context, index) {
+          final product = products[index];
+          return _buildProductCard(product, width / crossAxisCount);
+        },
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 600;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  "Petmart",
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverAppBar(
+              automaticallyImplyLeading: false,
+              expandedHeight: isTablet ? 100 : 80,
+              floating: true,
+              pinned: true,
+              elevation: 0,
+              scrolledUnderElevation: 1,
+              flexibleSpace: FlexibleSpaceBar(
+                centerTitle: true,
+                title: Text(
+                  "PetMart",
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    fontSize: isTablet ? 28 : 22,
                   ),
                 ),
               ),
-              _buildSection(context),
-              _buildFilters(),
-              _buildProductGrid(isLandscape),
-            ],
-          ),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: IconButton(
+                    onPressed: () => _onItemTapped(2),
+                    icon: const Icon(Icons.shopping_cart_outlined),
+                    tooltip: "Shopping Cart",
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(8),
+                  ),
+                ),
+              ],
+            ),
+            SliverToBoxAdapter(
+              child: Column(
+                children: [_buildHeroSection(), _buildProductGrid()],
+              ),
+            ),
+          ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.blue[900],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.store), label: "Shop"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: _onItemTapped,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: "Home",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.store_outlined),
+            selectedIcon: Icon(Icons.store),
+            label: "Shop",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.shopping_cart_outlined),
+            selectedIcon: Icon(Icons.shopping_cart),
             label: "Cart",
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: "Profile",
+          ),
         ],
       ),
     );
   }
 }
-
