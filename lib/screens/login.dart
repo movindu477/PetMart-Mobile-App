@@ -464,78 +464,90 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFE3F2FD),
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+              spreadRadius: 0,
             ),
           ],
         ),
-        child: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: _onItemTapped,
-          backgroundColor: const Color(0xFFE3F2FD),
-          elevation: 8,
-          height: 70,
-          indicatorColor: const Color(0xFF64B5F6),
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          animationDuration: const Duration(milliseconds: 400),
-          destinations: [
-            NavigationDestination(
-              icon: Icon(
-                Icons.home_outlined,
-                color: Colors.blueGrey[600],
-                size: 26,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          child: NavigationBar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: _onItemTapped,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            height: 72,
+            indicatorColor: const Color(0xFF2196F3),
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            animationDuration: const Duration(milliseconds: 300),
+            surfaceTintColor: Colors.transparent,
+            destinations: [
+              NavigationDestination(
+                icon: Icon(
+                  Icons.home_outlined,
+                  color: Colors.grey[600],
+                  size: 24,
+                ),
+                selectedIcon: const Icon(
+                  Icons.home_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                label: "Home",
               ),
-              selectedIcon: const Icon(
-                Icons.home,
-                color: Colors.white,
-                size: 26,
+              NavigationDestination(
+                icon: Icon(
+                  Icons.store_outlined,
+                  color: Colors.grey[600],
+                  size: 24,
+                ),
+                selectedIcon: const Icon(
+                  Icons.store_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                label: "Shop",
               ),
-              label: "Home",
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.store_outlined,
-                color: Colors.blueGrey[600],
-                size: 26,
+              NavigationDestination(
+                icon: Icon(
+                  Icons.shopping_cart_outlined,
+                  color: Colors.grey[600],
+                  size: 24,
+                ),
+                selectedIcon: const Icon(
+                  Icons.shopping_cart_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                label: "Cart",
               ),
-              selectedIcon: const Icon(
-                Icons.store,
-                color: Colors.white,
-                size: 26,
+              NavigationDestination(
+                icon: Icon(
+                  Icons.person_outline,
+                  color: Colors.grey[600],
+                  size: 24,
+                ),
+                selectedIcon: const Icon(
+                  Icons.person_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                label: "Profile",
               ),
-              label: "Shop",
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.shopping_cart_outlined,
-                color: Colors.blueGrey[600],
-                size: 26,
-              ),
-              selectedIcon: const Icon(
-                Icons.shopping_cart,
-                color: Colors.white,
-                size: 26,
-              ),
-              label: "Cart",
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.person_outline,
-                color: Colors.blueGrey[600],
-                size: 26,
-              ),
-              selectedIcon: const Icon(
-                Icons.person,
-                color: Colors.white,
-                size: 26,
-              ),
-              label: "Profile",
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

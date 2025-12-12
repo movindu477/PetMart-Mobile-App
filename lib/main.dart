@@ -41,31 +41,79 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+    with TickerProviderStateMixin {
+  late AnimationController _mainController;
+  late AnimationController _logoController;
+  late AnimationController _pulseController;
+  
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  late Animation<double> _logoScaleAnimation;
+  late Animation<double> _logoRotationAnimation;
+  late Animation<double> _pulseAnimation;
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    _controller = AnimationController(
+    _mainController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3),
+      duration: const Duration(milliseconds: 4000),
     );
+
+    _logoController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+        parent: _mainController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
       ),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.3, 1.0, curve: Curves.elasticOut),
+        parent: _mainController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _logoScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _logoController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
+    _logoRotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _logoController,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(
+        parent: _pulseController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _mainController,
+        curve: const Interval(0.2, 0.8, curve: Curves.easeOutCubic),
       ),
     );
 
@@ -73,155 +121,251 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _startAnimations() async {
-    _controller.forward();
-    await Future.delayed(const Duration(seconds: 3));
+    _logoController.forward();
+    await Future.delayed(const Duration(milliseconds: 300));
+    _mainController.forward();
+    await Future.delayed(const Duration(milliseconds: 4000));
 
     if (mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => const HomePage(),
+          transitionDuration: const Duration(milliseconds: 500),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+        ),
       );
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _mainController.dispose();
+    _logoController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          FadeTransition(
-            opacity: _fadeAnimation,
-            child: Image.asset(
-              "images/main1.jpg",
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.blue[50],
-                  child: const Icon(Icons.pets, size: 100, color: Colors.blue),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF2196F3),
+              const Color(0xFF1976D2),
+              const Color(0xFF1565C0),
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            AnimatedBuilder(
+              animation: _pulseController,
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: _BackgroundPatternPainter(_pulseAnimation.value),
                 );
               },
             ),
-          ),
-          Container(
-            color: Colors.black.withOpacity(0.2),
-          ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ScaleTransition(
+            
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
                 scale: _scaleAnimation,
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset(
-                      "images/logo.png",
-                      width: 200,
-                      height: 200,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 150,
-                          height: 150,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.pets,
-                            size: 80,
-                            color: Colors.blue,
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: const Text(
-                        "Petmart",
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: const Text(
-                        "Your Pet's Favorite Store",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white70,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 60.0),
-                child: Column(
-                  children: [
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: const Text(
-                        "Loading...",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      height: 4,
-                      width: MediaQuery.of(context).size.width * 0.6,
+                    const Spacer(flex: 2),
+                    
+                    SlideTransition(
+                      position: _slideAnimation,
                       child: AnimatedBuilder(
-                        animation: _controller,
+                        animation: _logoScaleAnimation,
                         builder: (context, child) {
-                          return LinearProgressIndicator(
-                            value: _controller.value,
-                            backgroundColor: Colors.white30,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.blue.shade100,
+                          return Transform.scale(
+                            scale: _logoScaleAnimation.value,
+                            child: Transform.rotate(
+                              angle: (_logoRotationAnimation.value - 1.0) * 0.1,
+                              child: Container(
+                                width: 160,
+                                height: 160,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.white.withOpacity(0.3),
+                                      blurRadius: 30,
+                                      spreadRadius: 10,
+                                    ),
+                                    BoxShadow(
+                                      color: theme.colorScheme.primary.withOpacity(0.5),
+                                      blurRadius: 40,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Colors.white,
+                                          Colors.white.withOpacity(0.9),
+                                        ],
+                                      ),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20),
+                                      child: Image.asset(
+                                        "images/logo.png",
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Icon(
+                                            Icons.pets_rounded,
+                                            size: 100,
+                                            color: theme.colorScheme.primary,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                            borderRadius: BorderRadius.circular(10),
                           );
                         },
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    AnimatedBuilder(
-                      animation: _controller,
-                      builder: (context, child) {
-                        return Text(
-                          "${(_controller.value * 100).toInt()}%",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                    
+                    const SizedBox(height: 32),
+                    
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Text(
+                        "PetMart",
+                        style: TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 2,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 12),
+                    
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Text(
+                        "Your Pet's Favorite Store",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withOpacity(0.9),
+                          letterSpacing: 0.5,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    
+                    const Spacer(flex: 3),
+                    
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 80.0),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: 60,
+                            height: 60,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 4,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white.withOpacity(0.9),
+                              ),
+                              backgroundColor: Colors.white.withOpacity(0.2),
+                            ),
                           ),
-                        );
-                      },
+                          const SizedBox(height: 24),
+                          FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: AnimatedBuilder(
+                              animation: _mainController,
+                              builder: (context, child) {
+                                return Text(
+                                  "${(_mainController.value * 100).toInt()}%",
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _BackgroundPatternPainter extends CustomPainter {
+  final double animationValue;
+
+  _BackgroundPatternPainter(this.animationValue);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05 * animationValue)
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < 5; i++) {
+      final radius = (50 + i * 30) * animationValue;
+      final center = Offset(
+        size.width * (0.2 + i * 0.15),
+        size.height * (0.3 + i * 0.1),
+      );
+      canvas.drawCircle(center, radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

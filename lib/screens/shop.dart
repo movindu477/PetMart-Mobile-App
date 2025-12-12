@@ -236,6 +236,22 @@ class _ShopPageState extends State<ShopPage> {
 
   String? _selectedPetType;
   String? _selectedAccessoryType;
+  late RangeValues _priceRange;
+  bool _showFilters = false;
+
+  double get _maxPrice {
+    return _products.map((p) => p['price'] as double).reduce((a, b) => a > b ? a : b);
+  }
+
+  double get _sliderMax {
+    return (_maxPrice * 1.2).ceilToDouble();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _priceRange = RangeValues(0, _sliderMax);
+  }
 
   @override
   void dispose() {
@@ -305,8 +321,19 @@ class _ShopPageState extends State<ShopPage> {
           _selectedAccessoryType!.isEmpty ||
           product['accessoryType'] == _selectedAccessoryType;
 
-      return matchPet && matchAcc;
+      final matchPrice = (product['price'] as double) >= _priceRange.start &&
+          (product['price'] as double) <= _priceRange.end;
+
+      return matchPet && matchAcc && matchPrice;
     }).toList();
+  }
+
+  void _resetFilters() {
+    setState(() {
+      _selectedPetType = null;
+      _selectedAccessoryType = null;
+      _priceRange = RangeValues(0, _sliderMax);
+    });
   }
 
   void _onItemTapped(int index) {
@@ -580,6 +607,267 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
+  Widget _buildFilterSection() {
+    final theme = Theme.of(context);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth >= 600;
+
+    if (!_showFilters) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: isTablet ? 20 : 16,
+        vertical: 12,
+      ),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Filters",
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
+                ),
+              ),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: _resetFilters,
+                    child: Text(
+                      "Reset",
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _showFilters = false;
+                      });
+                    },
+                    icon: const Icon(Icons.close),
+                    tooltip: "Close filters",
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          Text(
+            "Pet Type",
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildFilterChip(
+                  label: "Dog",
+                  icon: Icons.pets,
+                  isSelected: _selectedPetType == "Dog",
+                  onTap: () {
+                    setState(() {
+                      _selectedPetType = _selectedPetType == "Dog" ? null : "Dog";
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildFilterChip(
+                  label: "Cat",
+                  icon: Icons.pets,
+                  isSelected: _selectedPetType == "Cat",
+                  onTap: () {
+                    setState(() {
+                      _selectedPetType = _selectedPetType == "Cat" ? null : "Cat";
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          Text(
+            "Accessories Type",
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildFilterChip(
+                  label: "Food",
+                  icon: Icons.restaurant,
+                  isSelected: _selectedAccessoryType == "Food",
+                  onTap: () {
+                    setState(() {
+                      _selectedAccessoryType = _selectedAccessoryType == "Food" ? null : "Food";
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildFilterChip(
+                  label: "Toys",
+                  icon: Icons.toys,
+                  isSelected: _selectedAccessoryType == "Toys",
+                  onTap: () {
+                    setState(() {
+                      _selectedAccessoryType = _selectedAccessoryType == "Toys" ? null : "Toys";
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          Text(
+            "Price Range",
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 12),
+          RangeSlider(
+            values: _priceRange,
+            min: 0,
+            max: _sliderMax,
+            divisions: _sliderMax.toInt(),
+                labels: RangeLabels(
+                  "\$${_priceRange.start.toStringAsFixed(0)}",
+                  "\$${_priceRange.end.toStringAsFixed(0)}",
+                ),
+                activeColor: theme.colorScheme.primary,
+                inactiveColor: theme.colorScheme.primary.withOpacity(0.2),
+            onChanged: (RangeValues values) {
+              setState(() {
+                _priceRange = values;
+              });
+            },
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  "Min: \$${_priceRange.start.toStringAsFixed(0)}",
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  "Max: \$${_priceRange.end.toStringAsFixed(0)}",
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.surfaceVariant.withOpacity(0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected
+                  ? Colors.white
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected
+                    ? Colors.white
+                    : theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildProductGrid() {
     final theme = Theme.of(context);
     final products = _filteredProducts;
@@ -697,6 +985,40 @@ class _ShopPageState extends State<ShopPage> {
                 ),
               ),
               actions: [
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _showFilters = !_showFilters;
+                    });
+                  },
+                  icon: Stack(
+                    children: [
+                      Icon(
+                        _showFilters ? Icons.filter_alt : Icons.filter_alt_outlined,
+                        color: _showFilters ? Theme.of(context).colorScheme.primary : null,
+                      ),
+                      if (_selectedPetType != null ||
+                          _selectedAccessoryType != null ||
+                          _priceRange.start > 0 ||
+                          _priceRange.end < _sliderMax)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.error,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  tooltip: "Filters",
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
+                ),
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: IconButton(
@@ -711,7 +1033,11 @@ class _ShopPageState extends State<ShopPage> {
             ),
             SliverToBoxAdapter(
               child: Column(
-                children: [_buildHeroSection(), _buildProductGrid()],
+                children: [
+                  _buildHeroSection(),
+                  _buildFilterSection(),
+                  _buildProductGrid(),
+                ],
               ),
             ),
           ],
@@ -719,78 +1045,90 @@ class _ShopPageState extends State<ShopPage> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFE3F2FD),
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+              spreadRadius: 0,
             ),
           ],
         ),
-        child: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: _onItemTapped,
-          backgroundColor: const Color(0xFFE3F2FD),
-          elevation: 8,
-          height: 70,
-          indicatorColor: const Color(0xFF64B5F6),
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          animationDuration: const Duration(milliseconds: 400),
-          destinations: [
-            NavigationDestination(
-              icon: Icon(
-                Icons.home_outlined,
-                color: Colors.blueGrey[600],
-                size: 26,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+          child: NavigationBar(
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: _onItemTapped,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            height: 72,
+            indicatorColor: const Color(0xFF2196F3),
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            animationDuration: const Duration(milliseconds: 300),
+            surfaceTintColor: Colors.transparent,
+            destinations: [
+              NavigationDestination(
+                icon: Icon(
+                  Icons.home_outlined,
+                  color: Colors.grey[600],
+                  size: 24,
+                ),
+                selectedIcon: const Icon(
+                  Icons.home_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                label: "Home",
               ),
-              selectedIcon: const Icon(
-                Icons.home,
-                color: Colors.white,
-                size: 26,
+              NavigationDestination(
+                icon: Icon(
+                  Icons.store_outlined,
+                  color: Colors.grey[600],
+                  size: 24,
+                ),
+                selectedIcon: const Icon(
+                  Icons.store_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                label: "Shop",
               ),
-              label: "Home",
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.store_outlined,
-                color: Colors.blueGrey[600],
-                size: 26,
+              NavigationDestination(
+                icon: Icon(
+                  Icons.shopping_cart_outlined,
+                  color: Colors.grey[600],
+                  size: 24,
+                ),
+                selectedIcon: const Icon(
+                  Icons.shopping_cart_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                label: "Cart",
               ),
-              selectedIcon: const Icon(
-                Icons.store,
-                color: Colors.white,
-                size: 26,
+              NavigationDestination(
+                icon: Icon(
+                  Icons.person_outline,
+                  color: Colors.grey[600],
+                  size: 24,
+                ),
+                selectedIcon: const Icon(
+                  Icons.person_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                label: "Profile",
               ),
-              label: "Shop",
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.shopping_cart_outlined,
-                color: Colors.blueGrey[600],
-                size: 26,
-              ),
-              selectedIcon: const Icon(
-                Icons.shopping_cart,
-                color: Colors.white,
-                size: 26,
-              ),
-              label: "Cart",
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.person_outline,
-                color: Colors.blueGrey[600],
-                size: 26,
-              ),
-              selectedIcon: const Icon(
-                Icons.person,
-                color: Colors.white,
-                size: 26,
-              ),
-              label: "Profile",
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
