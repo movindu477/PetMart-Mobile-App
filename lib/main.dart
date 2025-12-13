@@ -3,9 +3,15 @@ import 'dart:io';
 import 'screens/homepage.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  PaintingBinding.instance.imageCache.clear();
+  PaintingBinding.instance.imageCache.clearLiveImages();
+
   HttpOverrides.global = MyHttpOverrides();
   runApp(const PetShopApp());
 }
+
 
 class MyHttpOverrides extends HttpOverrides {
   @override
