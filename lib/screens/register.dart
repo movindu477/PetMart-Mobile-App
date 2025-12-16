@@ -4,42 +4,29 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:quickalert/quickalert.dart';
 
-import 'register.dart';
+import 'login.dart';
 import 'profile.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   static const String baseUrl = "http://10.0.2.2/SSPLaravel/public/api";
-
-  @override
-  void initState() {
-    super.initState();
-    _checkLoginStatus();
-  }
-
-  Future<void> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('loggedEmail');
-    if (email != null && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const ProfilePage()),
-      );
-    }
-  }
 
   Future<void> _saveLogin(String email, String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -47,8 +34,18 @@ class _LoginPageState extends State<LoginPage> {
     await prefs.setString('token', token);
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Error',
+        text: 'Passwords do not match',
+      );
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -56,20 +53,22 @@ class _LoginPageState extends State<LoginPage> {
       context: context,
       type: QuickAlertType.loading,
       title: 'Processing',
-      text: 'Logging in...',
+      text: 'Creating your account...',
       barrierDismissible: false,
     );
 
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/login"),
+        Uri.parse("$baseUrl/register"),
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
         },
         body: jsonEncode({
+          "name": _nameController.text.trim(),
           "email": _emailController.text.trim(),
           "password": _passwordController.text.trim(),
+          "password_confirmation": _confirmPasswordController.text.trim(),
         }),
       );
 
@@ -79,14 +78,16 @@ class _LoginPageState extends State<LoginPage> {
 
       Navigator.pop(context);
 
-      if (response.statusCode == 200 && data['token'] != null) {
-        await _saveLogin(_emailController.text.trim(), data['token']);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (data['token'] != null) {
+          await _saveLogin(_emailController.text.trim(), data['token']);
+        }
 
         QuickAlert.show(
           context: context,
           type: QuickAlertType.success,
           title: 'Success',
-          text: 'Login successful!',
+          text: 'Account created successfully!',
           autoCloseDuration: const Duration(seconds: 2),
         );
 
@@ -102,8 +103,10 @@ class _LoginPageState extends State<LoginPage> {
         QuickAlert.show(
           context: context,
           type: QuickAlertType.error,
-          title: 'Login Failed',
-          text: data['message'] ?? "Invalid credentials",
+          title: 'Registration Failed',
+          text: data['message'] ??
+              data['error'] ??
+              "Registration failed. Please try again.",
         );
       }
     } catch (e) {
@@ -134,7 +137,10 @@ class _LoginPageState extends State<LoginPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+            colors: [
+              theme.colorScheme.secondary,
+              theme.colorScheme.primary,
+            ],
           ),
         ),
         child: SafeArea(
@@ -145,9 +151,17 @@ class _LoginPageState extends State<LoginPage> {
                 vertical: isSmallScreen ? 16 : 32,
               ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(height: isSmallScreen ? 20 : 40),
+                  SizedBox(height: isSmallScreen ? 10 : 20),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isSmallScreen ? 10 : 16),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -162,7 +176,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   SizedBox(height: isSmallScreen ? 20 : 24),
                   Text(
-                    "Welcome Back",
+                    "Create Account",
                     style: TextStyle(
                       fontSize: isSmallScreen ? 28 : 32,
                       color: Colors.white,
@@ -178,7 +192,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    "Sign in to continue",
+                    "Sign up to get started",
                     style: TextStyle(
                       fontSize: isSmallScreen ? 14 : 16,
                       color: Colors.white.withOpacity(0.9),
@@ -205,7 +219,7 @@ class _LoginPageState extends State<LoginPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            "Login",
+                            "Register",
                             style: TextStyle(
                               fontSize: isSmallScreen ? 22 : 24,
                               fontWeight: FontWeight.bold,
@@ -213,6 +227,27 @@ class _LoginPageState extends State<LoginPage> {
                             textAlign: TextAlign.center,
                           ),
                           SizedBox(height: isSmallScreen ? 20 : 24),
+                          TextFormField(
+                            controller: _nameController,
+                            keyboardType: TextInputType.name,
+                            decoration: InputDecoration(
+                              labelText: "Full Name",
+                              prefixIcon: const Icon(Icons.person_outlined),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              filled: true,
+                              fillColor:
+                                  theme.colorScheme.surfaceContainerHighest,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
+                            validator: (v) =>
+                                v!.isEmpty ? "Enter your name" : null,
+                          ),
+                          SizedBox(height: isSmallScreen ? 12 : 16),
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
@@ -263,14 +298,50 @@ class _LoginPageState extends State<LoginPage> {
                                 vertical: 16,
                               ),
                             ),
-                            validator: (v) =>
-                                v!.isEmpty ? "Enter password" : null,
+                            validator: (v) => v!.length < 6
+                                ? "Password must be at least 6 characters"
+                                : null,
+                          ),
+                          SizedBox(height: isSmallScreen ? 12 : 16),
+                          TextFormField(
+                            controller: _confirmPasswordController,
+                            obscureText: _obscureConfirmPassword,
+                            decoration: InputDecoration(
+                              labelText: "Confirm Password",
+                              prefixIcon: const Icon(Icons.lock_outlined),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscureConfirmPassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureConfirmPassword =
+                                        !_obscureConfirmPassword;
+                                  });
+                                },
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              filled: true,
+                              fillColor:
+                                  theme.colorScheme.surfaceContainerHighest,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
+                            validator: (v) => v!.isEmpty
+                                ? "Please confirm your password"
+                                : null,
                           ),
                           SizedBox(height: isSmallScreen ? 20 : 24),
                           SizedBox(
                             height: isSmallScreen ? 48 : 52,
                             child: FilledButton(
-                              onPressed: _isLoading ? null : _handleLogin,
+                              onPressed: _isLoading ? null : _handleRegister,
                               style: FilledButton.styleFrom(
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -287,7 +358,7 @@ class _LoginPageState extends State<LoginPage> {
                                       ),
                                     )
                                   : Text(
-                                      "Sign In",
+                                      "Sign Up",
                                       style: TextStyle(
                                         fontSize: isSmallScreen ? 16 : 18,
                                         fontWeight: FontWeight.w600,
@@ -300,22 +371,22 @@ class _LoginPageState extends State<LoginPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                "Don't have an account? ",
+                                "Already have an account? ",
                                 style: TextStyle(
                                   fontSize: isSmallScreen ? 13 : 14,
                                 ),
                               ),
                               TextButton(
                                 onPressed: () {
-                                  Navigator.push(
+                                  Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => const RegisterPage(),
+                                      builder: (_) => const LoginPage(),
                                     ),
                                   );
                                 },
                                 child: const Text(
-                                  "Sign Up",
+                                  "Sign In",
                                   style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
                               ),

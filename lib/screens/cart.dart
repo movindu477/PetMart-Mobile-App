@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'homepage.dart';
 import 'shop.dart';
-import 'login.dart';
+import 'profile.dart';
 import '../models/cart_data.dart';
 import 'payment.dart';
 
@@ -15,6 +15,24 @@ class CartPage extends StatefulWidget {
 class _CartPageState extends State<CartPage> {
   int _selectedIndex = 2;
   List<Map<String, dynamic>> get cartItems => globalCartItems;
+
+  String _getImageUrl(String imageUrl) {
+    if (imageUrl.isEmpty) return '';
+    
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    
+    if (imageUrl.startsWith('/')) {
+      return "http://10.0.2.2:8000$imageUrl";
+    }
+    
+    if (imageUrl.startsWith('storage/') || imageUrl.startsWith('images/')) {
+      return "http://10.0.2.2:8000/$imageUrl";
+    }
+    
+    return "http://10.0.2.2:8000/storage/$imageUrl";
+  }
 
   @override
   void initState() {
@@ -123,9 +141,9 @@ class _CartPageState extends State<CartPage> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: item['image'] != null
-                      ? Image.asset(
-                          item['image'],
+                  child: item['image'] != null && item['image'].toString().isNotEmpty
+                      ? Image.network(
+                          _getImageUrl(item['image'].toString()),
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Icon(
@@ -273,7 +291,7 @@ class _CartPageState extends State<CartPage> {
       case 3:
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginPage()),
+          MaterialPageRoute(builder: (context) => const ProfilePage()),
         );
         break;
     }

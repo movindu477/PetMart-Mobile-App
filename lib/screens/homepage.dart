@@ -3,6 +3,7 @@ import 'shop.dart';
 import 'login.dart';
 import 'cart.dart';
 import 'about.dart';
+import 'profile.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -69,14 +70,28 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final isTablet = screenWidth >= 600;
+    final isSmallScreen = screenHeight < 700;
 
     return FadeTransition(
       opacity: _fadeAnimations[0],
       child: SlideTransition(
         position: _slideAnimations[0],
         child: Container(
-          height: isTablet ? screenHeight * 0.5 : screenHeight * 0.45,
+          height: isSmallScreen
+              ? screenHeight * 0.4
+              : (isTablet ? screenHeight * 0.5 : screenHeight * 0.45),
           width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(32),
+              bottomRight: Radius.circular(32),
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(32),
+              bottomRight: Radius.circular(32),
+            ),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -102,7 +117,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withOpacity(0.3),
+                        Colors.black.withOpacity(0.2),
                       Colors.black.withOpacity(0.7),
                     ],
                   ),
@@ -115,14 +130,40 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 child: SafeArea(
                   child: Padding(
                     padding: EdgeInsets.all(isTablet ? 40 : 24),
-                    child: Align(
-                      alignment: Alignment.bottomLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
                       child: Text(
+                              "Your Pet's Best Friend",
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: Colors.white.withOpacity(0.9),
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
                         "Welcome to PetMart",
                         style: theme.textTheme.displayMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
                           letterSpacing: -1,
+                              fontSize: isSmallScreen ? 32 : (isTablet ? 48 : 40),
                           shadows: [
                             Shadow(
                               color: Colors.black.withOpacity(0.5),
@@ -131,12 +172,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             ),
                           ],
                         ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            "Everything your pet needs, all in one place",
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: Colors.white.withOpacity(0.95),
+                              fontWeight: FontWeight.w400,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black.withOpacity(0.4),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
+              ],
               ),
-            ],
           ),
         ),
       ),
@@ -164,10 +222,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             vertical: 12,
           ),
           child: Card(
-            elevation: 4,
-            shadowColor: Colors.black.withOpacity(0.1),
+            elevation: 6,
+            shadowColor: Colors.black.withOpacity(0.15),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(28),
             ),
             clipBehavior: Clip.antiAlias,
             child: Column(
@@ -200,7 +258,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                             end: Alignment.bottomCenter,
                             colors: [
                               Colors.transparent,
-                              Colors.black.withOpacity(0.6),
+                              Colors.black.withOpacity(0.5),
                             ],
                           ),
                         ),
@@ -213,7 +271,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              title == "About Us"
+                                  ? Icons.info
+                                  : title == "Our Shop"
+                                      ? Icons.store
+                                      : Icons.contact_support,
+                              color: theme.colorScheme.onPrimaryContainer,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
                         title,
                         style: theme.textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.w700,
@@ -221,11 +299,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           fontSize: isTablet ? 32 : 28,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                       Text(
                         description,
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          height: 1.6,
+                          height: 1.7,
                           color: theme.colorScheme.onSurfaceVariant,
                           fontSize: isTablet ? 17 : 15,
                         ),
@@ -290,7 +371,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               description:
                   "At PetMart, we believe pets are family. With years of expertise and a passion for animals, we provide top-quality products and trusted advice to ensure your pets live happy, healthy lives.",
               index: 1,
-              actionButton: FilledButton.icon(
+              actionButton: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: FilledButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -298,14 +390,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   );
                 },
                 icon: const Icon(Icons.info_outline),
-                label: const Text("Learn More"),
+                  label: const Text("About Us"),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
+                      horizontal: 28,
                     vertical: 16,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 ),
               ),
@@ -342,7 +435,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               description:
                   "Have questions? Need recommendations? Reach out to our friendly team for guidance, support, or to find the perfect product for your pet.",
               index: 3,
-              actionButton: FilledButton.icon(
+              actionButton: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.secondary.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: FilledButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -353,11 +457,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 label: const Text("Get in Touch"),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
+                      horizontal: 28,
                     vertical: 16,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                 ),
               ),
@@ -414,7 +519,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 case 3:
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                    MaterialPageRoute(builder: (context) => const ProfilePage()),
                   );
                   break;
               }
