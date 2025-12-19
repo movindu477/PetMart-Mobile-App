@@ -10,6 +10,7 @@ import 'profile.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../services/favorite_service.dart';
+import '../services/cart_service.dart';
 
 class ShopPage extends StatefulWidget {
   const ShopPage({super.key});
@@ -30,7 +31,19 @@ class _ShopPageState extends State<ShopPage> {
   @override
   void initState() {
     super.initState();
+    _loadCachedData();
     _loadAllData();
+  }
+
+  Future<void> _loadCachedData() async {
+    try {
+      final cachedFavorites = await FavoriteService.getCachedFavorites();
+      setState(() {
+        _favoriteIds = cachedFavorites;
+      });
+    } catch (e) {
+      debugPrint("CACHE LOAD ERROR: $e");
+    }
   }
 
   Future<void> _loadAllData() async {
@@ -50,22 +63,10 @@ class _ShopPageState extends State<ShopPage> {
       try {
         final favorites = await FavoriteService.fetchFavorites();
         setState(() {
-          _favoriteIds = favorites
-              .where((f) => f is Map && f.containsKey('pet_id'))
-              .map<int>((f) {
-                final petId = f['pet_id'];
-                if (petId is int) return petId;
-                if (petId is String) return int.tryParse(petId) ?? -1;
-                return -1;
-              })
-              .where((id) => id != -1)
-              .toSet();
+          _favoriteIds = favorites;
         });
       } catch (e) {
         debugPrint("FAVORITES LOAD ERROR: $e");
-        setState(() {
-          _favoriteIds = <int>{};
-        });
       }
     } catch (e) {
       debugPrint("SHOP LOAD ERROR: $e");
@@ -91,34 +92,163 @@ class _ShopPageState extends State<ShopPage> {
   }
 
   Future<void> _addToCart(Product product) async {
-    await QuickAlert.show(
-      context: context,
-      type: QuickAlertType.loading,
-      title: 'Adding to cart',
-      barrierDismissible: false,
-    );
-
-    await Future.delayed(const Duration(milliseconds: 400));
-
     if (!mounted) return;
 
-    Navigator.pop(context);
+    try {
+      await CartService.addToCart(product.id);
 
-    QuickAlert.show(
-      context: context,
-      type: QuickAlertType.success,
-      title: 'Added',
-      text: '${product.productName} added to cart',
-      autoCloseDuration: const Duration(seconds: 1),
+      if (!mounted) return;
+
+      // Show success message immediately
+      await QuickAlert.show(
+        context: context,
+        type: QuickAlertType.success,
+        title: 'Added to Cart',
+        text: '${product.productName} added successfully',
+      );
+
+      if (!mounted) return;
+
+      // Navigate to cart page after user dismisses success message
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const CartPage()),
+      );
+    } catch (e) {
+      debugPrint("Add to cart error: $e");
+
+      if (!mounted) return;
+
+      // Show error message
+      String errorText = 'Failed to add item to cart. Please try again.';
+      if (e.toString().contains('Failed to add to cart')) {
+        final parts = e.toString().split(':');
+        if (parts.length > 1) {
+          errorText = parts.last.trim();
+        }
+      }
+
+      await QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Error',
+        text: errorText,
+      );
+    }
+  }
+
+  Widget _buildHeroSection() {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      height: 200,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -50,
+            top: -50,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -30,
+            bottom: -30,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Discover',
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Premium pet products',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: Colors.white.withOpacity(0.9),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.local_offer, color: Colors.white, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${_products.length} Products',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildProductCard(Product product) {
+    final theme = Theme.of(context);
     final bool isFav = _favoriteIds.contains(product.id);
 
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: theme.colorScheme.outline.withOpacity(0.1),
+          width: 1,
+        ),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
@@ -139,28 +269,63 @@ class _ShopPageState extends State<ShopPage> {
                   CachedNetworkImage(
                     imageUrl: product.fullImageUrl,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    placeholder: (context, url) => Container(
+                      color: theme.colorScheme.surfaceVariant,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
                     ),
-                    errorWidget: (context, url, error) =>
-                        const Center(child: Icon(Icons.broken_image, size: 40)),
+                    errorWidget: (context, url, error) => Container(
+                      color: theme.colorScheme.surfaceVariant,
+                      child: Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          size: 40,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                   ),
                   Positioned(
                     top: 8,
                     right: 8,
-                    child: IconButton(
-                      icon: Icon(
-                        isFav ? Icons.favorite : Icons.favorite_border,
-                        color: isFav ? Colors.red : Colors.white,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      onPressed: () => _toggleFavorite(product.id),
+                      child: IconButton(
+                        icon: Icon(
+                          isFav ? Icons.favorite : Icons.favorite_border,
+                          color: isFav
+                              ? Colors.red
+                              : theme.colorScheme.onSurfaceVariant,
+                          size: 20,
+                        ),
+                        onPressed: () => _toggleFavorite(product.id),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -168,22 +333,41 @@ class _ShopPageState extends State<ShopPage> {
                     product.productName,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        "Rs. ${product.price}",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        "Rs. ${product.price.toStringAsFixed(0)}",
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.primary,
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.add_shopping_cart),
-                        onPressed: () => _addToCart(product),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.add_shopping_cart,
+                            size: 18,
+                            color: theme.colorScheme.onPrimaryContainer,
+                          ),
+                          onPressed: () => _addToCart(product),
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 36,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -196,7 +380,9 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
-  Widget _buildGrid() {
+  Widget _buildProductsGrid() {
+    final theme = Theme.of(context);
+
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -211,17 +397,14 @@ class _ShopPageState extends State<ShopPage> {
               Icon(
                 Icons.error_outline,
                 size: 64,
-                color: Theme.of(context).colorScheme.error,
+                color: theme.colorScheme.error,
               ),
               const SizedBox(height: 16),
-              Text(
-                "Error loading products",
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
+              Text("Error loading products", style: theme.textTheme.titleLarge),
               const SizedBox(height: 8),
               Text(
                 _errorMessage!,
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: theme.textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -244,17 +427,14 @@ class _ShopPageState extends State<ShopPage> {
             Icon(
               Icons.inventory_2_outlined,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
-            Text(
-              "No products available",
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text("No products available", style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
               "Check back later for new products",
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: theme.textTheme.bodyMedium,
             ),
           ],
         ),
@@ -262,12 +442,12 @@ class _ShopPageState extends State<ShopPage> {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.7,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
       ),
       itemCount: _products.length,
       itemBuilder: (context, index) {
@@ -304,17 +484,80 @@ class _ShopPageState extends State<ShopPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: const Text("PetMart Shop"),
+        elevation: 0,
+        scrolledUnderElevation: 1,
+        backgroundColor: theme.colorScheme.surface,
+        title: Text(
+          "Shop",
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.shopping_cart),
+            icon: const Icon(Icons.shopping_cart_outlined),
             onPressed: () => _onItemTapped(2),
+            tooltip: "Cart",
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: _buildGrid(),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: _buildHeroSection()),
+          if (!_isLoading && _errorMessage == null && _products.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "All Products",
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      "${_products.length} items",
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (_isLoading || _errorMessage != null || _products.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildProductsGrid(),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.75,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  if (index >= _products.length) {
+                    return const SizedBox.shrink();
+                  }
+                  return _buildProductCard(_products[index]);
+                }, childCount: _products.length),
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onItemTapped,

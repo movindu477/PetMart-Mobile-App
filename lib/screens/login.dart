@@ -6,6 +6,8 @@ import 'package:quickalert/quickalert.dart';
 
 import 'register.dart';
 import 'profile.dart';
+import '../services/favorite_service.dart';
+import '../services/cart_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -81,6 +83,16 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response.statusCode == 200 && data['token'] != null) {
         await _saveLogin(_emailController.text.trim(), data['token']);
+
+        try {
+          await FavoriteService.fetchFavorites();
+          await CartService.fetchCart();
+
+          // Sync local cart to API (push offline changes to server)
+          await CartService.syncLocalCartToApi();
+        } catch (e) {
+          debugPrint("Sync error: $e");
+        }
 
         QuickAlert.show(
           context: context,

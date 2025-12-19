@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:quickalert/quickalert.dart';
+import '../services/order_service.dart';
+import '../services/cart_cache_service.dart';
+import '../services/cart_service.dart';
 
 class PaymentPage extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
@@ -18,16 +22,22 @@ class _PaymentPageState extends State<PaymentPage> {
   String? _selectedPaymentMethod;
 
   double get totalAmount {
-    return widget.cartItems.fold(
-      0,
-      (sum, item) => sum + (item["price"] * item["quantity"]),
-    );
+    return widget.cartItems.fold(0.0, (sum, item) {
+      final price = item["price"] is double
+          ? item["price"] as double
+          : double.tryParse(item["price"].toString()) ?? 0.0;
+      final quantity = item["quantity"] is int
+          ? item["quantity"] as int
+          : int.tryParse(item["quantity"].toString()) ?? 1;
+      return sum + (price * quantity);
+    });
   }
 
-  void placeOrder() {
-    if (fullNameController.text.isEmpty ||
-        addressController.text.isEmpty ||
-        phoneController.text.isEmpty ||
+  Future<void> placeOrder() async {
+    // Validate form
+    if (fullNameController.text.trim().isEmpty ||
+        addressController.text.trim().isEmpty ||
+        phoneController.text.trim().isEmpty ||
         _selectedPaymentMethod == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -40,7 +50,7 @@ class _PaymentPageState extends State<PaymentPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-            'Please fill all required fields and select a payment method',
+                  'Please fill all required fields and select a payment method',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onPrimary,
                   ),
@@ -58,30 +68,82 @@ class _PaymentPageState extends State<PaymentPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              Icons.check_circle_outline,
-              color: Theme.of(context).colorScheme.onPrimary,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Order placed successfully!',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    if (!mounted) return;
+
+    try {
+      // Place order on API with all details
+      await OrderService.placeOrder(
+        fullName: fullNameController.text.trim(),
+        address: addressController.text.trim(),
+        phone: phoneController.text.trim(),
+        cityZip: cityZipController.text.trim().isNotEmpty
+            ? cityZipController.text.trim()
+            : null,
+        paymentMethod: _selectedPaymentMethod!,
+        cartItems: widget.cartItems,
+        totalAmount: totalAmount,
+      );
+
+      // Clear cart from API
+      try {
+        for (final item in widget.cartItems) {
+          final petId = item['pet_id'] is int
+              ? item['pet_id'] as int
+              : int.tryParse(item['pet_id'].toString()) ?? 0;
+          if (petId > 0) {
+            await CartService.removeFromCart(petId);
+          }
+        }
+      } catch (e) {
+        debugPrint("Failed to clear cart from API: $e");
+      }
+
+      // Clear cart cache
+      await CartCacheService.clearCart();
+
+      if (!mounted) return;
+
+      // Show success message
+      await QuickAlert.show(
+        context: context,
+        type: QuickAlertType.success,
+        title: 'Order Placed!',
+        text: 'Your order has been placed successfully',
+        autoCloseDuration: const Duration(seconds: 2),
+      );
+
+      if (!mounted) return;
+
+      // Navigate back to cart with refresh flag
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+
+      // Extract error message
+      String errorMessage = "Failed to place order. Please try again.";
+      final errorStr = e.toString();
+
+      if (errorStr.contains('Exception: ')) {
+        errorMessage = errorStr.split('Exception: ').last.trim();
+      } else if (errorStr.contains(':')) {
+        errorMessage = errorStr.split(':').skip(1).join(':').trim();
+      }
+
+      // Check for specific error types
+      if (errorStr.contains('timeout') || errorStr.contains('Timeout')) {
+        errorMessage =
+            "Request timed out. Please check your connection and try again.";
+      } else if (errorStr.contains('Network') || errorStr.contains('network')) {
+        errorMessage = "Network error. Please check your connection.";
+      }
+
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.error,
+        title: 'Order Failed',
+        text: errorMessage,
+      );
+    }
   }
 
   @override
@@ -113,9 +175,9 @@ class _PaymentPageState extends State<PaymentPage> {
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           padding: EdgeInsets.all(isTablet ? 24 : 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -125,9 +187,9 @@ class _PaymentPageState extends State<PaymentPage> {
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                    children: [
                       Row(
-                  children: [
+                        children: [
                           Icon(
                             Icons.shopping_cart_outlined,
                             color: theme.colorScheme.primary,
@@ -139,12 +201,18 @@ class _PaymentPageState extends State<PaymentPage> {
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
-                      ),
+                          ),
                         ],
-                    ),
+                      ),
                       const SizedBox(height: 20),
                       ...cartItems.map((item) {
-                        final itemTotal = item["price"] * item["quantity"];
+                        final price = item["price"] is double
+                            ? item["price"] as double
+                            : double.tryParse(item["price"].toString()) ?? 0.0;
+                        final quantity = item["quantity"] is int
+                            ? item["quantity"] as int
+                            : int.tryParse(item["quantity"].toString()) ?? 1;
+                        final itemTotal = price * quantity;
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Row(
@@ -155,7 +223,9 @@ class _PaymentPageState extends State<PaymentPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      item["name"],
+                                      item["product_name"] ??
+                                          item["name"] ??
+                                          "Product",
                                       style: theme.textTheme.bodyLarge
                                           ?.copyWith(
                                             fontWeight: FontWeight.w600,
@@ -168,27 +238,27 @@ class _PaymentPageState extends State<PaymentPage> {
                                             color: theme
                                                 .colorScheme
                                                 .onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ),
                               Text(
                                 "\$${itemTotal.toStringAsFixed(2)}",
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w700,
                                   color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ],
+                                ),
+                              ),
+                            ],
                           ),
-                  );
-                }).toList(),
+                        );
+                      }).toList(),
                       const Divider(),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-            Text(
+                          Text(
                             "Total",
                             style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.w700,
@@ -206,18 +276,18 @@ class _PaymentPageState extends State<PaymentPage> {
                     ],
                   ),
                 ),
-            ),
+              ),
               const SizedBox(height: 24),
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
-              ),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Row(
                         children: [
                           Icon(
@@ -227,30 +297,30 @@ class _PaymentPageState extends State<PaymentPage> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                    "Shipping Details",
+                            "Shipping Details",
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
-                  ),
+                      ),
                       const SizedBox(height: 20),
                       buildInputField("Full Name", fullNameController, theme),
                       buildInputField("Address", addressController, theme),
-                  buildInputField(
-                    "Phone Number",
-                    phoneController,
+                      buildInputField(
+                        "Phone Number",
+                        phoneController,
                         theme,
-                    keyboard: TextInputType.phone,
-                  ),
-                  buildInputField(
-                    "City / Zip Code (Optional)",
-                    cityZipController,
+                        keyboard: TextInputType.phone,
+                      ),
+                      buildInputField(
+                        "City / Zip Code (Optional)",
+                        cityZipController,
                         theme,
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
               ),
               const SizedBox(height: 24),
               Card(
@@ -272,36 +342,36 @@ class _PaymentPageState extends State<PaymentPage> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-              "Payment Method",
+                            "Payment Method",
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.w600,
                             ),
-            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
                       RadioListTile<String>(
-              title: const Text("Cash on Delivery"),
+                        title: const Text("Cash on Delivery"),
                         value: "cash",
                         groupValue: _selectedPaymentMethod,
                         onChanged: (value) {
-                setState(() {
+                          setState(() {
                             _selectedPaymentMethod = value;
-                });
-              },
+                          });
+                        },
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-            ),
+                      ),
                       RadioListTile<String>(
                         title: const Text("Card Payment"),
                         value: "card",
                         groupValue: _selectedPaymentMethod,
                         onChanged: (value) {
-                setState(() {
+                          setState(() {
                             _selectedPaymentMethod = value;
-                });
-              },
+                          });
+                        },
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -309,12 +379,12 @@ class _PaymentPageState extends State<PaymentPage> {
                     ],
                   ),
                 ),
-            ),
+              ),
               const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
+              SizedBox(
+                width: double.infinity,
                 child: FilledButton.icon(
-                onPressed: placeOrder,
+                  onPressed: placeOrder,
                   icon: const Icon(Icons.check_circle_outline),
                   label: Text(
                     "Place Order - \$${totalAmount.toStringAsFixed(2)}",
@@ -324,14 +394,14 @@ class _PaymentPageState extends State<PaymentPage> {
                   ),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
-            ),
               const SizedBox(height: 24),
-          ],
+            ],
           ),
         ),
       ),
