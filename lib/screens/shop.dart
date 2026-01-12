@@ -11,6 +11,7 @@ import '../models/product.dart';
 import '../services/product_service.dart';
 import '../services/favorite_service.dart';
 import '../services/cart_service.dart';
+import '../services/local_favorite_service.dart';
 
 class ShopPage extends StatefulWidget {
   const ShopPage({super.key});
@@ -31,18 +32,18 @@ class _ShopPageState extends State<ShopPage> {
   @override
   void initState() {
     super.initState();
-    _loadCachedData();
+    _loadLocalFavorites();
     _loadAllData();
   }
 
-  Future<void> _loadCachedData() async {
+  Future<void> _loadLocalFavorites() async {
     try {
-      final cachedFavorites = await FavoriteService.getCachedFavorites();
+      final localFavs = await LocalFavoriteService.getAll();
       setState(() {
-        _favoriteIds = cachedFavorites;
+        _favoriteIds = localFavs;
       });
     } catch (e) {
-      debugPrint("CACHE LOAD ERROR: $e");
+      debugPrint("LOCAL FAVORITES LOAD ERROR: $e");
     }
   }
 
@@ -78,16 +79,26 @@ class _ShopPageState extends State<ShopPage> {
   }
 
   Future<void> _toggleFavorite(int petId) async {
+    final isFav = _favoriteIds.contains(petId);
+
+    setState(() {
+      isFav ? _favoriteIds.remove(petId) : _favoriteIds.add(petId);
+    });
+
+    if (isFav) {
+      await LocalFavoriteService.remove(petId);
+    } else {
+      await LocalFavoriteService.add(petId);
+    }
+
     try {
-      if (_favoriteIds.contains(petId)) {
+      if (isFav) {
         await FavoriteService.removeFavorite(petId);
-        setState(() => _favoriteIds.remove(petId));
       } else {
         await FavoriteService.addFavorite(petId);
-        setState(() => _favoriteIds.add(petId));
       }
     } catch (e) {
-      debugPrint("Favorite error: $e");
+      debugPrint("Offline mode – saved locally");
     }
   }
 

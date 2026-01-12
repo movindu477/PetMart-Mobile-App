@@ -6,6 +6,9 @@ import 'homepage.dart';
 import 'login.dart';
 import 'shop.dart';
 import 'cart.dart';
+import 'favorites.dart';
+import '../services/favorite_cache_service.dart';
+import '../services/cart_cache_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -21,13 +24,30 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    _loadUserInfo();
+    _checkLoginStatus();
   }
 
-  Future<void> _loadUserInfo() async {
+  Future<void> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('loggedEmail');
+    final token = prefs.getString('token');
+
+    if (email == null || token == null) {
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginPage()),
+            );
+          }
+        });
+      }
+      return;
+    }
+
     setState(() {
-      _loggedEmail = prefs.getString('loggedEmail');
+      _loggedEmail = email;
     });
   }
 
@@ -41,10 +61,17 @@ class _ProfilePageState extends State<ProfilePage> {
       cancelBtnText: 'No',
       onConfirmBtnTap: () async {
         Navigator.pop(context);
-        
+
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('loggedEmail');
         await prefs.remove('token');
+
+        try {
+          await FavoriteCacheService.clearFavorites();
+          await CartCacheService.clearCart();
+        } catch (e) {
+          debugPrint("Error clearing cache: $e");
+        }
 
         if (!mounted) return;
 
@@ -60,9 +87,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
         if (!mounted) return;
 
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const LoginPage()),
+          (route) => false,
         );
       },
     );
@@ -186,16 +214,20 @@ class _ProfilePageState extends State<ProfilePage> {
                                   children: [
                                     Text(
                                       'Email',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: theme.colorScheme.onSurfaceVariant,
-                                      ),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       _loggedEmail ?? 'Not logged in',
-                                      style: theme.textTheme.bodyLarge?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: theme.textTheme.bodyLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -245,24 +277,14 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           title: const Text('Favorites'),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: () {},
-                        ),
-                        Divider(height: 1),
-                        ListTile(
-                          leading: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.tertiaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.settings_outlined,
-                              color: theme.colorScheme.onTertiaryContainer,
-                            ),
-                          ),
-                          title: const Text('Settings'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const FavoritesPage(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -387,4 +409,3 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 }
-
