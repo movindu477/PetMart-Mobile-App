@@ -16,6 +16,9 @@ dependencies:
   cached_network_image: ^3.3.1
   sqflite: ^2.4.2
   path: ^1.9.0
+  geolocator: ^10.1.0
+  geocoding: ^3.0.0
+  google_maps_flutter: ^2.5.0
 
 dev_dependencies:
   flutter_test:
@@ -27,6 +30,7 @@ flutter:
   uses-material-design: true
   assets:
     - images/main1.jpg
+    - images/login.jpg
     - images/logo.png
     - images/section1.jpg
     - images/section2.jpg

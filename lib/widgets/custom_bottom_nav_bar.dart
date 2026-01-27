@@ -8,14 +8,19 @@ import '../screens/profile.dart';
 // It uses a pill-shaped design for a modern look.
 class CustomBottomNavBar extends StatelessWidget {
   final int selectedIndex;
+  final void Function(int)? onTap;
 
-  const CustomBottomNavBar({super.key, required this.selectedIndex});
+  const CustomBottomNavBar({
+    super.key,
+    required this.selectedIndex,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.black,
@@ -29,7 +34,7 @@ class CustomBottomNavBar extends StatelessWidget {
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildNavItem(context, 0, Icons.home_rounded, "Home"),
             _buildNavItem(
@@ -56,67 +61,80 @@ class CustomBottomNavBar extends StatelessWidget {
     bool isSelected = selectedIndex == index;
     return GestureDetector(
       onTap: () {
+        if (onTap != null) {
+          onTap!(index);
+          return;
+        }
         if (selectedIndex == index) return;
 
-        // Navigate to the corresponding page based on the index
+        // Navigate with a smooth custom transition
         switch (index) {
           case 0:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const HomePage()),
-            );
+            Navigator.pushReplacement(context, _createRoute(const HomePage()));
             break;
           case 1:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const ShopPage()),
-            );
+            Navigator.pushReplacement(context, _createRoute(const ShopPage()));
             break;
           case 2:
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const CartPage()),
-            );
+            Navigator.pushReplacement(context, _createRoute(const CartPage()));
             break;
           case 3:
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const ProfilePage()),
+              _createRoute(const ProfilePage()),
             );
             break;
         }
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: isSelected
-            ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
-            : const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? Colors.black : Colors.white,
-              size: 24,
-            ),
-            if (isSelected) ...[
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ],
-        ),
+      child: isSelected
+          ? Hero(tag: 'nav-pill', child: _buildTabItem(isSelected, icon, label))
+          : _buildTabItem(isSelected, icon, label),
+    );
+  }
+
+  Widget _buildTabItem(bool isSelected, IconData icon, String label) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOutCubicEmphasized,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.white : Colors.transparent,
+        borderRadius: BorderRadius.circular(30),
       ),
+      child: Icon(
+        icon,
+        color: isSelected ? Colors.black : Colors.white.withOpacity(0.65),
+        size: 26,
+      ),
+    );
+  }
+
+  Route _createRoute(Widget page) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = 0.0;
+        const end = 1.0;
+        const curve = Curves.easeInOut;
+
+        var tween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: curve));
+        var fadeAnimation = animation.drive(tween);
+
+        var scaleTween = Tween(
+          begin: 0.98,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOut));
+        var scaleAnimation = animation.drive(scaleTween);
+
+        return FadeTransition(
+          opacity: fadeAnimation,
+          child: ScaleTransition(scale: scaleAnimation, child: child),
+        );
+      },
+      transitionDuration: const Duration(milliseconds: 600),
     );
   }
 }

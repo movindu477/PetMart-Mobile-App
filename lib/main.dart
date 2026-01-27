@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'screens/homepage.dart';
+
+import 'screens/login.dart';
+
+// import 'screens/main_screen.dart'; // Import MainScreen
 
 // This is where the app starts executing.
 void main() {
@@ -104,7 +107,7 @@ class _SplashScreenState extends State<SplashScreen>
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const HomePage(),
+          pageBuilder: (_, __, ___) => const LoginPage(),
           transitionDuration: const Duration(milliseconds: 800),
           transitionsBuilder: (_, a, __, c) =>
               FadeTransition(opacity: a, child: c),

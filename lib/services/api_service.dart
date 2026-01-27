@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
@@ -13,5 +15,25 @@ class ApiService {
       "Content-Type": "application/json",
       if (token != null) "Authorization": "Bearer $token",
     };
+  }
+
+  static Future<Map<String, dynamic>?> fetchUserProfile() async {
+    final url = Uri.parse("$baseUrl/user"); // Assuming standard endpoint
+    final headers = await authHeaders();
+
+    try {
+      final response = await http.get(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        // Fallback: try /profile if /user fails, or just return null
+        // return null;
+        print("Failed to fetch user profile: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error fetching user profile: $e");
+    }
+    return null;
   }
 }

@@ -584,7 +584,7 @@ class _ShopPageState extends State<ShopPage> {
             ),
         ],
       ),
-      bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 2),
+      bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 1),
     );
   }
 }

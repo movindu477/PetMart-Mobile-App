@@ -15,7 +15,7 @@ class CartPage extends StatefulWidget {
 
 class _CartPageState extends State<CartPage> {
   // We keep track of the selected tab for the bottom nav bar
-  final int _selectedIndex = 2;
+  // final int _selectedIndex = 2;
 
   // List to hold the items currently in the cart
   List<Map<String, dynamic>> cartItems = [];
@@ -804,7 +804,7 @@ class _CartPageState extends State<CartPage> {
                 ],
               ),
       ),
-      bottomNavigationBar: CustomBottomNavBar(selectedIndex: _selectedIndex),
+      bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 2),
     );
   }
 }

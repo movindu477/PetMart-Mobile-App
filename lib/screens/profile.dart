@@ -3,12 +3,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quickalert/quickalert.dart';
 
 import 'login.dart';
+import 'homepage.dart';
 import 'favorites.dart';
+// import 'my_orders.dart'; // Placeholder
 import '../services/favorite_cache_service.dart';
 import '../services/cart_cache_service.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
+import '../services/api_service.dart';
 
-// This is the profile page where users can manage their account, view orders, and favorites.
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -17,24 +19,23 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // We keep track of the selected tab for the bottom nav bar
-  final int _selectedIndex = 3;
   String? _loggedEmail;
+  String _userName = "Jane Cooper";
+  String _phone = "(303) 555-0105"; // Default placeholder
+  String _address = "UK, 789 Pine Avenue"; // Default placeholder
 
   @override
   void initState() {
     super.initState();
-    // Check if we have a valid session when the page loads
     _checkLoginStatus();
   }
 
-  // Verifies if the user is authenticated by checking local storage
   Future<void> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final email = prefs.getString('loggedEmail');
     final token = prefs.getString('token');
+    final name = prefs.getString('loggedName');
 
-    // If no token is found, redirect to the login page
     if (email == null || token == null) {
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -51,12 +52,43 @@ class _ProfilePageState extends State<ProfilePage> {
 
     setState(() {
       _loggedEmail = email;
+      if (name != null && name.isNotEmpty) {
+        _userName = name;
+      }
     });
+
+    _fetchUserData();
   }
 
-  // Handles the logout process, including clearing local data and cache
+  Future<void> _fetchUserData() async {
+    final response = await ApiService.fetchUserProfile();
+    if (response != null && mounted) {
+      // Handle potential wrappers if the API returns { "user": ... } or { "data": ... }
+      final userData = response['user'] ?? response['data'] ?? response;
+
+      setState(() {
+        if (userData['name'] != null) _userName = userData['name'];
+        if (userData['email'] != null) _loggedEmail = userData['email'];
+
+        // Try multiple common keys for phone
+        _phone =
+            userData['phone']?.toString() ??
+            userData['phone_number']?.toString() ??
+            userData['contact_no']?.toString() ??
+            userData['mobile']?.toString() ??
+            "Not set";
+
+        // Try multiple common keys for address
+        _address =
+            userData['address']?.toString() ??
+            userData['location']?.toString() ??
+            userData['full_address']?.toString() ??
+            "Not set";
+      });
+    }
+  }
+
   Future<void> _handleLogout() async {
-    // Show a confirmation dialog before logging out
     await QuickAlert.show(
       context: context,
       type: QuickAlertType.confirm,
@@ -64,14 +96,14 @@ class _ProfilePageState extends State<ProfilePage> {
       text: 'Are you sure you want to logout?',
       confirmBtnText: 'Yes',
       cancelBtnText: 'No',
+      confirmBtnColor: Colors.red,
       onConfirmBtnTap: () async {
-        Navigator.pop(context);
+        Navigator.pop(context); // Close dialog
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('loggedEmail');
         await prefs.remove('token');
 
-        // We also want to clear any cached data for privacy
         try {
           await FavoriteCacheService.clearFavorites();
           await CartCacheService.clearCart();
@@ -81,20 +113,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
         if (!mounted) return;
 
-        // Show a success message
-        await QuickAlert.show(
-          context: context,
-          type: QuickAlertType.success,
-          title: 'Logged Out',
-          text: 'You have been logged out successfully',
-          autoCloseDuration: const Duration(seconds: 1),
-        );
-
-        await Future.delayed(const Duration(seconds: 1));
-
-        if (!mounted) return;
-
-        // Redirect to login page and remove all previous routes
+        // Redirect to unified Login Page
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -106,206 +125,271 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth >= 600;
+    // Dark Color from design
+    final darkColor = const Color(0xFF18181B);
 
     return Scaffold(
-      body: CustomScrollView(
+      backgroundColor: Colors.grey[100],
+      bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 3),
+      body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        slivers: [
-          // A nice collapsible app bar with the user's avatar
-          SliverAppBar(
-            expandedHeight: 200,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                'Profile',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withOpacity(0.5),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+        padding: EdgeInsets.zero,
+        child: Column(
+          children: [
+            // 1. Dark Header Section
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: darkColor,
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(32),
                 ),
               ),
-              centerTitle: true,
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      theme.colorScheme.primary,
-                      theme.colorScheme.secondary,
-                    ],
-                  ),
-                ),
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.person,
-                      size: 60,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Main profile content
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.all(isTablet ? 32 : 20),
+              padding: const EdgeInsets.fromLTRB(24, 60, 24, 40),
               child: Column(
                 children: [
-                  // User info card
-                  Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primaryContainer,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Icon(
-                                  Icons.email,
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Email',
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: theme
-                                                .colorScheme
-                                                .onSurfaceVariant,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      _loggedEmail ?? 'Not logged in',
-                                      style: theme.textTheme.bodyLarge
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                  // App Bar Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => const HomePage()),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white24),
+                            color: Colors.white.withOpacity(0.05),
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Menu options
-                  Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.shopping_bag_outlined,
-                              color: theme.colorScheme.onPrimaryContainer,
-                            ),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new,
+                            color: Colors.white,
+                            size: 18,
                           ),
-                          title: const Text('My Orders'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {},
-                        ),
-                        Divider(height: 1),
-                        ListTile(
-                          leading: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.secondaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.favorite_outline,
-                              color: theme.colorScheme.onSecondaryContainer,
-                            ),
-                          ),
-                          title: const Text('Favorites'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const FavoritesPage(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Logout button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: _handleLogout,
-                      icon: const Icon(Icons.logout),
-                      label: const Text('Logout'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        side: BorderSide(
-                          color: theme.colorScheme.error,
-                          width: 2,
                         ),
                       ),
-                    ),
+                      const Text(
+                        "Profile",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 40, height: 40),
+                    ],
                   ),
+
                   const SizedBox(height: 32),
+
+                  // Profile Image
+                  Stack(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.grey[800],
+                          child: const Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Colors.white54,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.edit,
+                            size: 16,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Name & Email
+                  Text(
+                    _userName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _loggedEmail ?? "Loading...",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 14,
+                    ),
+                  ),
                 ],
               ),
             ),
+
+            // 2. Details Section
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  _buildDetailField("Full Name", _userName, isEditable: true),
+                  _buildDetailField(
+                    "Nickname",
+                    _userName.split(' ').first,
+                    isEditable: true,
+                  ),
+                  _buildDetailField(
+                    "Email",
+                    _loggedEmail ?? "Not set",
+                    icon: Icons.email_outlined,
+                  ),
+                  _buildDetailField(
+                    "Phone",
+                    _phone,
+                    icon: Icons.phone_outlined,
+                  ),
+                  _buildDetailField(
+                    "Address",
+                    _address,
+                    icon: Icons.location_on_outlined,
+                  ),
+
+                  const SizedBox(height: 32),
+                  _buildMenuItem(
+                    Icons.logout,
+                    "Log out",
+                    isDestructive: true,
+                    onTap: _handleLogout,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailField(
+    String label,
+    String value, {
+    bool isEditable = false,
+    IconData? icon,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    color: Color(0xFF1E1E1E),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isEditable)
+            Icon(Icons.edit, color: Colors.grey[400], size: 20)
+          else if (icon != null)
+            Icon(icon, color: Colors.grey[400], size: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(
+    IconData icon,
+    String title, {
+    bool isDestructive = false,
+    VoidCallback? onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white, // In case background is grey
+        borderRadius: BorderRadius.circular(16),
+        // Design usually implies flat or subtle shadow
+        // border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      bottomNavigationBar: CustomBottomNavBar(selectedIndex: _selectedIndex),
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: Icon(
+          icon,
+          color: isDestructive ? Colors.red : Colors.black87,
+          size: 24,
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: isDestructive ? Colors.red : Colors.black87,
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: Colors.grey,
+        ),
+      ),
     );
   }
 }
