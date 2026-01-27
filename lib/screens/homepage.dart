@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'shop.dart';
-import 'login.dart';
-import 'cart.dart';
 import 'about.dart';
-import 'profile.dart';
 
+import '../widgets/custom_bottom_nav_bar.dart';
+
+// This is the main landing page of the application where users land after the splash screen.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -12,582 +12,513 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  int _selectedIndex = 0;
+class _HomePageState extends State<HomePage> {
+  final int _selectedIndex = 0;
   late ScrollController _scrollController;
-  late List<AnimationController> _animationControllers;
-  late List<Animation<double>> _fadeAnimations;
-  late List<Animation<Offset>> _slideAnimations;
 
   @override
   void initState() {
     super.initState();
+    // We initialize the scroll controller here to keep track of scrolling behavior.
     _scrollController = ScrollController();
-    _animationControllers = List.generate(
-      4,
-      (index) => AnimationController(
-        vsync: this,
-        duration: Duration(milliseconds: 600 + (index * 100)),
-      ),
-    );
-    _fadeAnimations = _animationControllers
-        .map(
-          (controller) => Tween<double>(begin: 0.0, end: 1.0).animate(
-            CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
-          ),
-        )
-        .toList();
-    _slideAnimations = _animationControllers
-        .map(
-          (controller) =>
-              Tween<Offset>(
-                begin: const Offset(0, 0.3),
-                end: Offset.zero,
-              ).animate(
-                CurvedAnimation(parent: controller, curve: Curves.easeOutCubic),
-              ),
-        )
-        .toList();
-
-    Future.delayed(const Duration(milliseconds: 100), () {
-      for (var controller in _animationControllers) {
-        controller.forward();
-      }
-    });
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
-    for (var controller in _animationControllers) {
-      controller.dispose();
-    }
     super.dispose();
-  }
-
-  Widget _buildHeroSection() {
-    final theme = Theme.of(context);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final isTablet = screenWidth >= 600;
-    final isSmallScreen = screenHeight < 700;
-
-    return FadeTransition(
-      opacity: _fadeAnimations[0],
-      child: SlideTransition(
-        position: _slideAnimations[0],
-        child: Container(
-          height: isSmallScreen
-              ? screenHeight * 0.4
-              : (isTablet ? screenHeight * 0.5 : screenHeight * 0.45),
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(32),
-              bottomRight: Radius.circular(32),
-            ),
-          ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(32),
-              bottomRight: Radius.circular(32),
-            ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.asset(
-                "images/mainback1.avif",
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: theme.colorScheme.surfaceVariant,
-                    child: Icon(
-                      Icons.pets,
-                      size: 100,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  );
-                },
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                        Colors.black.withOpacity(0.2),
-                      Colors.black.withOpacity(0.7),
-                    ],
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: SafeArea(
-                  child: Padding(
-                    padding: EdgeInsets.all(isTablet ? 40 : 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.3),
-                                width: 1,
-                              ),
-                            ),
-                      child: Text(
-                              "Your Pet's Best Friend",
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: Colors.white.withOpacity(0.9),
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                        "Welcome to PetMart",
-                        style: theme.textTheme.displayMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: -1,
-                              fontSize: isSmallScreen ? 32 : (isTablet ? 48 : 40),
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withOpacity(0.5),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            "Everything your pet needs, all in one place",
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: Colors.white.withOpacity(0.95),
-                              fontWeight: FontWeight.w400,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black.withOpacity(0.4),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-              ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSection({
-    required String image,
-    required String title,
-    required String description,
-    required int index,
-    Widget? actionButton,
-  }) {
-    final theme = Theme.of(context);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth >= 600;
-
-    return FadeTransition(
-      opacity: _fadeAnimations[index],
-      child: SlideTransition(
-        position: _slideAnimations[index],
-        child: Container(
-          margin: EdgeInsets.symmetric(
-            horizontal: isTablet ? 24 : 16,
-            vertical: 12,
-          ),
-          child: Card(
-            elevation: 6,
-            shadowColor: Colors.black.withOpacity(0.15),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: isTablet ? 280 : 220,
-                  width: double.infinity,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.asset(
-                        image,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: theme.colorScheme.surfaceVariant,
-                            child: Icon(
-                              Icons.pets,
-                              size: 80,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          );
-                        },
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.5),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(isTablet ? 28 : 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              title == "About Us"
-                                  ? Icons.info
-                                  : title == "Our Shop"
-                                      ? Icons.store
-                                      : Icons.contact_support,
-                              color: theme.colorScheme.onPrimaryContainer,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                        title,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.5,
-                          fontSize: isTablet ? 32 : 28,
-                        ),
-                      ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        description,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          height: 1.7,
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontSize: isTablet ? 17 : 15,
-                        ),
-                      ),
-                      if (actionButton != null) ...[
-                        const SizedBox(height: 24),
-                        actionButton,
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
+      backgroundColor: Colors.grey[50],
+      // We want the app bar to sit on top of the content for a seamless look.
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        elevation: 0,
-        scrolledUnderElevation: 2,
-        centerTitle: true,
-        title: Text(
+        title: const Text(
           "PetMart",
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            color: Colors.white,
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CartPage()),
-              );
-            },
-            icon: const Icon(Icons.shopping_cart_outlined),
-            tooltip: "Shopping Cart",
-          ),
-          const SizedBox(width: 8),
-        ],
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: const [SizedBox(width: 8)],
       ),
       body: SingleChildScrollView(
         controller: _scrollController,
         physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.zero,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // The top hero section with the main welcome message.
             _buildHeroSection(),
             const SizedBox(height: 24),
-            _buildSection(
-              image: "images/mainback2.avif",
-              title: "About Us",
-              description:
-                  "At PetMart, we believe pets are family. With years of expertise and a passion for animals, we provide top-quality products and trusted advice to ensure your pets live happy, healthy lives.",
-              index: 1,
-              actionButton: Container(
+
+            // This is the 'Discover' section showing off our services.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                height: 480,
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(32),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.white, const Color(0xFFF8FBFF)],
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.primary.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      color: const Color(0xFF1565C0).withOpacity(0.15),
+                      blurRadius: 30,
+                      offset: const Offset(0, 15),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.5),
+                      blurRadius: 10,
+                      offset: const Offset(-5, -5),
                     ),
                   ],
                 ),
-                child: FilledButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AboutPage()),
-                  );
-                },
-                icon: const Icon(Icons.info_outline),
-                  label: const Text("About Us"),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 28,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(32),
+                  child: Stack(
+                    children: [
+                      // We position the background image slightly off-screen for a dynamic look.
+                      Positioned(
+                        right: -100,
+                        bottom: 0,
+                        top: 40,
+                        child: Image.asset(
+                          "images/back2.png",
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      Positioned(
+                        top: 40,
+                        left: 24,
+                        right: 24,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Discover",
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                                color: const Color(0xFF1E1E1E),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            Text(
+                              "Your Perfect",
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                                color: const Color(0xFF1E1E1E),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            Text(
+                              "Pet Match",
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                                color: const Color(0xFF1E1E1E),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "Learn more about our services and how we can help you find the perfect companion.",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: const Color(0xFF1E1E1E).withOpacity(0.7),
+                                height: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 40,
+                        left: 24,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AboutPage(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1565C0),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            elevation: 5,
+                            shadowColor: const Color(
+                              0xFF1565C0,
+                            ).withOpacity(0.4),
+                          ),
+                          child: const Text(
+                            "About Us",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-            _buildSection(
-              image: "images/mainback3.avif",
-              title: "Our Shop",
-              description:
-                  "Explore our wide range of pet supplies — premium foods, comfy bedding, grooming kits, and exciting toys. Everything your pet needs, all under one roof.",
-              index: 2,
-              actionButton: FilledButton.icon(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ShopPage()),
-                  );
-                },
-                icon: const Icon(Icons.store),
-                label: const Text("Explore Shop"),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-              ),
-            ),
-            _buildSection(
-              image: "images/section4.jpg",
-              title: "Contact Us",
-              description:
-                  "Have questions? Need recommendations? Reach out to our friendly team for guidance, support, or to find the perfect product for your pet.",
-              index: 3,
-              actionButton: Container(
+            const SizedBox(height: 24),
+
+            // This is the 'Shop' section encouraging users to browse products.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                height: 480,
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(32),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.white, const Color(0xFFF8FBFF)],
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.secondary.withOpacity(0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+                      color: const Color(0xFF1565C0).withOpacity(0.15),
+                      blurRadius: 30,
+                      offset: const Offset(0, 15),
+                    ),
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.5),
+                      blurRadius: 10,
+                      offset: const Offset(-5, -5),
                     ),
                   ],
                 ),
-                child: FilledButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AboutPage()),
-                  );
-                },
-                icon: const Icon(Icons.contact_support_outlined),
-                label: const Text("Get in Touch"),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 28,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(32),
+                  child: Stack(
+                    children: [
+                      // Image placed on the left side for variety.
+                      Positioned(
+                        left: -60,
+                        bottom: 0,
+                        top: 80,
+                        child: Image.asset(
+                          "images/back3.png",
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      // Text content aligned to the right.
+                      Positioned(
+                        top: 40,
+                        right: 24,
+                        left: 24,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              "Everything",
+                              textAlign: TextAlign.end,
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                                color: const Color(0xFF1E1E1E),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            Text(
+                              "Your Pet Needs",
+                              textAlign: TextAlign.end,
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                                color: const Color(0xFF1E1E1E),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "Browse our wide range of premium pet products, from food to accessories.",
+                              textAlign: TextAlign.end,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: const Color(0xFF1E1E1E).withOpacity(0.7),
+                                height: 1.5,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 40,
+                        right: 24,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ShopPage(),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1565C0),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            elevation: 5,
+                            shadowColor: const Color(
+                              0xFF1565C0,
+                            ).withOpacity(0.4),
+                          ),
+                          child: const Text(
+                            "Shop Us",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+            _buildTestimonials(),
+            const SizedBox(height: 100),
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
+      bottomNavigationBar: _buildModernNavBar(),
+    );
+  }
+
+  // This internal widget builds the large hero image at the top.
+  Widget _buildHeroSection() {
+    return Container(
+      height: 700,
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1565C0),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 20,
+            offset: Offset(0, 10),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
-              spreadRadius: 0,
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            "images/back1.jpg",
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) =>
+                Container(color: const Color(0xFF1565C0)),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.3),
+                  Colors.black.withOpacity(0.6),
+                  const Color(0xFF1565C0).withOpacity(0.9),
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
           ),
-          child: NavigationBar(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              if (index == _selectedIndex) return;
+          Positioned(
+            bottom: 40,
+            left: 24,
+            right: 24,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Make Your Pet\nHappy Today",
+                  style: TextStyle(
+                    fontSize: 36,
+                    height: 1.1,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: -1,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Premium food, toys, and accessories delivered to your doorstep.",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white.withOpacity(0.9),
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-              setState(() {
-                _selectedIndex = index;
-              });
+  Widget _buildModernNavBar() {
+    return CustomBottomNavBar(selectedIndex: _selectedIndex);
+  }
 
-              switch (index) {
-                case 0:
-                  break;
-                case 1:
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ShopPage()),
-                  );
-                  break;
-                case 2:
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const CartPage()),
-                  );
-                  break;
-                case 3:
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ProfilePage()),
-                  );
-                  break;
-              }
+  // Simple list of customer reviews to build trust.
+  Widget _buildTestimonials() {
+    final reviews = [
+      {
+        "name": "Sarah M.",
+        "comment": "Great service! Delivered fast.",
+        "rating": 5,
+      },
+      {"name": "John D.", "comment": "Easy to use app. Love it!", "rating": 5},
+      {"name": "Emily R.", "comment": "My dog loves the toys!", "rating": 4},
+      {"name": "Michael B.", "comment": "Premium quality food.", "rating": 5},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            "Happy Customers",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E1E1E),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 160,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            scrollDirection: Axis.horizontal,
+            itemCount: reviews.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 16),
+            itemBuilder: (context, index) {
+              final review = reviews[index];
+              return Container(
+                width: 260,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1565C0).withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: const Color(0xFFF3F9FF),
+                          radius: 16,
+                          child: Text(
+                            (review['name'] as String)[0],
+                            style: const TextStyle(
+                              color: Color(0xFF1565C0),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              review['name'] as String,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Row(
+                              children: List.generate(
+                                5,
+                                (i) => Icon(
+                                  Icons.star_rounded,
+                                  size: 14,
+                                  color: i < (review['rating'] as int)
+                                      ? const Color(0xFFFFC107)
+                                      : Colors.grey.shade200,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Text(
+                      review['comment'] as String,
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              );
             },
-            backgroundColor: Colors.white,
-            elevation: 0,
-            height: 72,
-            indicatorColor: const Color(0xFF2196F3),
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-            animationDuration: const Duration(milliseconds: 300),
-            surfaceTintColor: Colors.transparent,
-            destinations: [
-              NavigationDestination(
-                icon: Icon(
-                  Icons.home_outlined,
-                  color: Colors.grey[600],
-                  size: 24,
-                ),
-                selectedIcon: const Icon(
-                  Icons.home_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                label: "Home",
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.store_outlined,
-                  color: Colors.grey[600],
-                  size: 24,
-                ),
-                selectedIcon: const Icon(
-                  Icons.store_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                label: "Shop",
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.shopping_cart_outlined,
-                  color: Colors.grey[600],
-                  size: 24,
-                ),
-                selectedIcon: const Icon(
-                  Icons.shopping_cart_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                label: "Cart",
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.person_outline,
-                  color: Colors.grey[600],
-                  size: 24,
-                ),
-                selectedIcon: const Icon(
-                  Icons.person_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                label: "Profile",
-              ),
-            ],
           ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'screens/homepage.dart';
 
+// This is where the app starts executing.
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Clearing image cache to ensure fresh assets are loaded
   PaintingBinding.instance.imageCache.clear();
   PaintingBinding.instance.imageCache.clearLiveImages();
 
+  // Using a custom HTTP override to handle certificate issues if any
   HttpOverrides.global = MyHttpOverrides();
   runApp(const PetShopApp());
 }
 
-
+// This class helps us bypass some security checks for development purposes.
 class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
@@ -22,6 +25,7 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
+// This is the root widget of our application. It sets up the main theme and structure.
 class PetShopApp extends StatelessWidget {
   const PetShopApp({super.key});
 
@@ -39,6 +43,7 @@ class PetShopApp extends StatelessWidget {
   }
 }
 
+// This screen shows up first to welcome users while we load things.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -48,102 +53,61 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late AnimationController _mainController;
-  late AnimationController _logoController;
-  late AnimationController _pulseController;
-  
+  late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-  late Animation<double> _logoScaleAnimation;
-  late Animation<double> _logoRotationAnimation;
-  late Animation<double> _pulseAnimation;
   late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    _mainController = AnimationController(
+    // Setting up the animation controller for our splash effects
+    _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 4000),
+      duration: const Duration(seconds: 4),
     );
 
-    _logoController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    );
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-
+    // Fade effect for smooth appearance
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _mainController,
+        parent: _controller,
         curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
       ),
     );
 
+    // Scale effect to make the logo pop
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic),
+        parent: _controller,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOutBack),
       ),
     );
 
-    _logoScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _logoController,
-        curve: Curves.elasticOut,
-      ),
-    );
+    // Slide effect to move things into place nicely
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.2, 0.8, curve: Curves.easeOutCubic),
+          ),
+        );
 
-    _logoRotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _logoController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
-
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOut,
-      ),
-    );
-
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _mainController,
-        curve: const Interval(0.2, 0.8, curve: Curves.easeOutCubic),
-      ),
-    );
-
-    _startAnimations();
+    _startSplashing();
   }
 
-  void _startAnimations() async {
-    _logoController.forward();
-    await Future.delayed(const Duration(milliseconds: 300));
-    _mainController.forward();
-    await Future.delayed(const Duration(milliseconds: 4000));
-
+  // This function handles the timing and navigation to the home page
+  void _startSplashing() async {
+    _controller.forward();
+    await Future.delayed(const Duration(milliseconds: 4500));
     if (mounted) {
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
-          pageBuilder: (context, animation, secondaryAnimation) => const HomePage(),
-          transitionDuration: const Duration(milliseconds: 500),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(
-              opacity: animation,
-              child: child,
-            );
-          },
+          pageBuilder: (_, __, ___) => const HomePage(),
+          transitionDuration: const Duration(milliseconds: 800),
+          transitionsBuilder: (_, a, __, c) =>
+              FadeTransition(opacity: a, child: c),
         ),
       );
     }
@@ -151,227 +115,148 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _mainController.dispose();
-    _logoController.dispose();
-    _pulseController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF2196F3),
-              const Color(0xFF1976D2),
-              const Color(0xFF1565C0),
-            ],
-            stops: const [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            AnimatedBuilder(
-              animation: _pulseController,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: _BackgroundPatternPainter(_pulseAnimation.value),
-                );
-              },
+      backgroundColor: Colors.white,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // We use a nice gradient background here for a premium feel
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFE3F2FD), Color(0xFFFFFFFF)],
+              ),
             ),
-            
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Spacer(flex: 2),
-                    
-                    SlideTransition(
-                      position: _slideAnimation,
-                      child: AnimatedBuilder(
-                        animation: _logoScaleAnimation,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _logoScaleAnimation.value,
-                            child: Transform.rotate(
-                              angle: (_logoRotationAnimation.value - 1.0) * 0.1,
-                              child: Container(
-                                width: 160,
-                                height: 160,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.white.withOpacity(0.3),
-                                      blurRadius: 30,
-                                      spreadRadius: 10,
-                                    ),
-                                    BoxShadow(
-                                      color: theme.colorScheme.primary.withOpacity(0.5),
-                                      blurRadius: 40,
-                                      spreadRadius: 5,
-                                    ),
-                                  ],
-                                ),
-                                child: ClipOval(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          Colors.white,
-                                          Colors.white.withOpacity(0.9),
-                                        ],
-                                      ),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(20),
-                                      child: Image.asset(
-                                        "images/logo.png",
-                                        fit: BoxFit.contain,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return Icon(
-                                            Icons.pets_rounded,
-                                            size: 100,
-                                            color: theme.colorScheme.primary,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Text(
-                        "PetMart",
-                        style: TextStyle(
-                          fontSize: 42,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: 2,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withOpacity(0.3),
-                              blurRadius: 20,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 12),
-                    
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Text(
-                        "Your Pet's Favorite Store",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white.withOpacity(0.9),
-                          letterSpacing: 0.5,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    
-                    const Spacer(flex: 3),
-                    
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 80.0),
-                      child: Column(
-                        children: [
-                          SizedBox(
-                            width: 60,
-                            height: 60,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 4,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white.withOpacity(0.9),
-                              ),
-                              backgroundColor: Colors.white.withOpacity(0.2),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          FadeTransition(
-                            opacity: _fadeAnimation,
-                            child: AnimatedBuilder(
-                              animation: _mainController,
-                              builder: (context, child) {
-                                return Text(
-                                  "${(_mainController.value * 100).toInt()}%",
-                                  style: TextStyle(
-                                    color: Colors.white.withOpacity(0.9),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 1,
-                                  ),
-                                );
-                              },
-                            ),
+          ),
+
+          // Adding some decorative circles in the background
+          Positioned(
+            top: -100,
+            right: -100,
+            child: _buildCircle(300, const Color(0xFFBBDEFB).withOpacity(0.3)),
+          ),
+          Positioned(
+            bottom: -50,
+            left: -50,
+            child: _buildCircle(200, const Color(0xFFBBDEFB).withOpacity(0.3)),
+          ),
+
+          // This is the main content area with the logo and text
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue.withOpacity(0.15),
+                            blurRadius: 30,
+                            offset: const Offset(0, 10),
+                            spreadRadius: 5,
                           ),
                         ],
                       ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          "images/logo.png",
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
-                  ],
+                  ),
                 ),
+                const SizedBox(height: 32),
+                SlideTransition(
+                  position: _slideAnimation,
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: Column(
+                      children: [
+                        const Text(
+                          "PetMart",
+                          style: TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF1565C0),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Everything your pet needs",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // A loading bar at the bottom to show progress
+          Positioned(
+            bottom: 80,
+            left: 48,
+            right: 48,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        return LinearProgressIndicator(
+                          value: _controller.value,
+                          backgroundColor: const Color(0xFFE3F2FD),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Color(0xFF1565C0),
+                          ),
+                          minHeight: 6,
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _BackgroundPatternPainter extends CustomPainter {
-  final double animationValue;
-
-  _BackgroundPatternPainter(this.animationValue);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.05 * animationValue)
-      ..style = PaintingStyle.fill;
-
-    for (int i = 0; i < 5; i++) {
-      final radius = (50 + i * 30) * animationValue;
-      final center = Offset(
-        size.width * (0.2 + i * 0.15),
-        size.height * (0.3 + i * 0.1),
-      );
-      canvas.drawCircle(center, radius, paint);
-    }
+  // A helper function to create decorative background circles
+  Widget _buildCircle(double size, Color color) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

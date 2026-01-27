@@ -1,3 +1,5 @@
+import '../services/api_service.dart';
+
 class Product {
   final int id;
   final String petType;
@@ -48,14 +50,14 @@ class Product {
     }
 
     if (imageUrl.startsWith('/')) {
-      return "http://10.0.2.2:8000$imageUrl";
+      return "${ApiService.contentUrl}$imageUrl";
     }
 
     if (imageUrl.startsWith('storage/') || imageUrl.startsWith('images/')) {
-      return "http://10.0.2.2:8000/$imageUrl";
+      return "${ApiService.contentUrl}/$imageUrl";
     }
 
-    return "http://10.0.2.2:8000/storage/$imageUrl";
+    return "${ApiService.contentUrl}/storage/$imageUrl";
   }
 
   Map<String, dynamic> toMap() {

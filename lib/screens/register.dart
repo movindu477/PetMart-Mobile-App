@@ -6,6 +6,7 @@ import 'package:quickalert/quickalert.dart';
 
 import 'login.dart';
 import 'profile.dart';
+import '../services/api_service.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -26,7 +27,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-  static const String baseUrl = "http://10.0.2.2/SSPLaravel/public/api";
+  static final String baseUrl = ApiService.baseUrl;
 
   Future<void> _saveLogin(String email, String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -104,7 +105,8 @@ class _RegisterPageState extends State<RegisterPage> {
           context: context,
           type: QuickAlertType.error,
           title: 'Registration Failed',
-          text: data['message'] ??
+          text:
+              data['message'] ??
               data['error'] ??
               "Registration failed. Please try again.",
         );
@@ -137,10 +139,7 @@ class _RegisterPageState extends State<RegisterPage> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.secondary,
-              theme.colorScheme.primary,
-            ],
+            colors: [theme.colorScheme.secondary, theme.colorScheme.primary],
           ),
         ),
         child: SafeArea(

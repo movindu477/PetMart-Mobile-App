@@ -6,6 +6,7 @@ import 'homepage.dart';
 import 'cart.dart';
 import 'product_detail.dart';
 import 'profile.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 
 import '../models/product.dart';
 import '../services/product_service.dart';
@@ -13,6 +14,7 @@ import '../services/favorite_service.dart';
 import '../services/cart_service.dart';
 import '../services/local_favorite_service.dart';
 
+// This is the main shopping page where users can browse all available products.
 class ShopPage extends StatefulWidget {
   const ShopPage({super.key});
 
@@ -21,8 +23,7 @@ class ShopPage extends StatefulWidget {
 }
 
 class _ShopPageState extends State<ShopPage> {
-  int _selectedIndex = 1;
-
+  // We keep track of products and favorites locally
   List<Product> _products = [];
   Set<int> _favoriteIds = {};
 
@@ -32,10 +33,12 @@ class _ShopPageState extends State<ShopPage> {
   @override
   void initState() {
     super.initState();
+    // Load initial data for the shop
     _loadLocalFavorites();
     _loadAllData();
   }
 
+  // Loads favorite items from local storage for offline access
   Future<void> _loadLocalFavorites() async {
     try {
       final localFavs = await LocalFavoriteService.getAll();
@@ -47,6 +50,7 @@ class _ShopPageState extends State<ShopPage> {
     }
   }
 
+  // Fetches all product data and favorites from the backend.
   Future<void> _loadAllData() async {
     setState(() {
       _isLoading = true;
@@ -78,9 +82,11 @@ class _ShopPageState extends State<ShopPage> {
     }
   }
 
+  // Adds or removes an item from favorites.
   Future<void> _toggleFavorite(int petId) async {
     final isFav = _favoriteIds.contains(petId);
 
+    // Optimistically update the UI
     setState(() {
       isFav ? _favoriteIds.remove(petId) : _favoriteIds.add(petId);
     });
@@ -91,6 +97,7 @@ class _ShopPageState extends State<ShopPage> {
       await LocalFavoriteService.add(petId);
     }
 
+    // Sync with backend
     try {
       if (isFav) {
         await FavoriteService.removeFavorite(petId);
@@ -102,6 +109,7 @@ class _ShopPageState extends State<ShopPage> {
     }
   }
 
+  // Adds the selected product to the shopping cart.
   Future<void> _addToCart(Product product) async {
     if (!mounted) return;
 
@@ -148,6 +156,7 @@ class _ShopPageState extends State<ShopPage> {
     }
   }
 
+  // The hero section is the banner at the top of the shop page
   Widget _buildHeroSection() {
     final theme = Theme.of(context);
 
@@ -163,6 +172,7 @@ class _ShopPageState extends State<ShopPage> {
       ),
       child: Stack(
         children: [
+          // Background decorative circles
           Positioned(
             right: -50,
             top: -50,
@@ -187,6 +197,7 @@ class _ShopPageState extends State<ShopPage> {
               ),
             ),
           ),
+          // Banner text content
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             child: Column(
@@ -247,6 +258,7 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
+  // Renders a single product card with image, price, and actions
   Widget _buildProductCard(Product product) {
     final theme = Theme.of(context);
     final bool isFav = _favoriteIds.contains(product.id);
@@ -273,6 +285,7 @@ class _ShopPageState extends State<ShopPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Product Image with Favorite Button overlay
             Expanded(
               child: Stack(
                 fit: StackFit.expand,
@@ -335,6 +348,7 @@ class _ShopPageState extends State<ShopPage> {
                 ],
               ),
             ),
+            // Product Details and Add to Cart button
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -391,6 +405,7 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
+  // Grid view to display multiple products
   Widget _buildProductsGrid() {
     final theme = Theme.of(context);
 
@@ -470,10 +485,10 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
+  // Navigation handler helper
   void _onItemTapped(int index) {
-    if (index == _selectedIndex) return;
-
-    setState(() => _selectedIndex = index);
+    // Note: We don't need to update checking logic here extensively
+    // because pushing a new route replaces the current one.
 
     if (index == 0) {
       Navigator.pushReplacement(
@@ -569,22 +584,7 @@ class _ShopPageState extends State<ShopPage> {
             ),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onItemTapped,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: "Home"),
-          NavigationDestination(icon: Icon(Icons.store), label: "Shop"),
-          NavigationDestination(
-            icon: Icon(Icons.shopping_cart_outlined),
-            label: "Cart",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: "Profile",
-          ),
-        ],
-      ),
+      bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 2),
     );
   }
 }

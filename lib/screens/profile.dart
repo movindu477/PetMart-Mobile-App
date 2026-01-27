@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:quickalert/quickalert.dart';
 
-import 'homepage.dart';
 import 'login.dart';
-import 'shop.dart';
-import 'cart.dart';
 import 'favorites.dart';
 import '../services/favorite_cache_service.dart';
 import '../services/cart_cache_service.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 
+// This is the profile page where users can manage their account, view orders, and favorites.
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -18,20 +17,24 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  int _selectedIndex = 3;
+  // We keep track of the selected tab for the bottom nav bar
+  final int _selectedIndex = 3;
   String? _loggedEmail;
 
   @override
   void initState() {
     super.initState();
+    // Check if we have a valid session when the page loads
     _checkLoginStatus();
   }
 
+  // Verifies if the user is authenticated by checking local storage
   Future<void> _checkLoginStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final email = prefs.getString('loggedEmail');
     final token = prefs.getString('token');
 
+    // If no token is found, redirect to the login page
     if (email == null || token == null) {
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -51,7 +54,9 @@ class _ProfilePageState extends State<ProfilePage> {
     });
   }
 
+  // Handles the logout process, including clearing local data and cache
   Future<void> _handleLogout() async {
+    // Show a confirmation dialog before logging out
     await QuickAlert.show(
       context: context,
       type: QuickAlertType.confirm,
@@ -66,6 +71,7 @@ class _ProfilePageState extends State<ProfilePage> {
         await prefs.remove('loggedEmail');
         await prefs.remove('token');
 
+        // We also want to clear any cached data for privacy
         try {
           await FavoriteCacheService.clearFavorites();
           await CartCacheService.clearCart();
@@ -75,6 +81,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
         if (!mounted) return;
 
+        // Show a success message
         await QuickAlert.show(
           context: context,
           type: QuickAlertType.success,
@@ -87,6 +94,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
         if (!mounted) return;
 
+        // Redirect to login page and remove all previous routes
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -94,32 +102,6 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       },
     );
-  }
-
-  void _onItemTapped(int index) {
-    if (index == _selectedIndex) return;
-    setState(() => _selectedIndex = index);
-
-    switch (index) {
-      case 0:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
-        break;
-      case 1:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const ShopPage()),
-        );
-        break;
-      case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const CartPage()),
-        );
-        break;
-    }
   }
 
   @override
@@ -132,6 +114,7 @@ class _ProfilePageState extends State<ProfilePage> {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
+          // A nice collapsible app bar with the user's avatar
           SliverAppBar(
             expandedHeight: 200,
             pinned: true,
@@ -179,11 +162,14 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
           ),
+
+          // Main profile content
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.all(isTablet ? 32 : 20),
               child: Column(
                 children: [
+                  // User info card
                   Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(
@@ -239,6 +225,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  // Menu options
                   Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(
@@ -290,6 +278,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  // Logout button
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
@@ -315,97 +305,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, -4),
-              spreadRadius: 0,
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-          child: NavigationBar(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              if (index == _selectedIndex) return;
-              _onItemTapped(index);
-            },
-            backgroundColor: Colors.white,
-            elevation: 0,
-            height: 72,
-            indicatorColor: const Color(0xFF2196F3),
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-            animationDuration: const Duration(milliseconds: 300),
-            surfaceTintColor: Colors.transparent,
-            destinations: [
-              NavigationDestination(
-                icon: Icon(
-                  Icons.home_outlined,
-                  color: Colors.grey[600],
-                  size: 24,
-                ),
-                selectedIcon: const Icon(
-                  Icons.home_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                label: "Home",
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.store_outlined,
-                  color: Colors.grey[600],
-                  size: 24,
-                ),
-                selectedIcon: const Icon(
-                  Icons.store_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                label: "Shop",
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.shopping_cart_outlined,
-                  color: Colors.grey[600],
-                  size: 24,
-                ),
-                selectedIcon: const Icon(
-                  Icons.shopping_cart_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                label: "Cart",
-              ),
-              NavigationDestination(
-                icon: Icon(
-                  Icons.person_outline,
-                  color: Colors.grey[600],
-                  size: 24,
-                ),
-                selectedIcon: const Icon(
-                  Icons.person_rounded,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                label: "Profile",
-              ),
-            ],
-          ),
-        ),
-      ),
+      bottomNavigationBar: CustomBottomNavBar(selectedIndex: _selectedIndex),
     );
   }
 }

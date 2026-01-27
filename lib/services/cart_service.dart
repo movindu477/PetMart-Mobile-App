@@ -4,9 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'cart_cache_service.dart';
+import 'api_service.dart';
 
 class CartService {
-  static const String baseUrl = "http://10.0.2.2:8000/api";
+  static final String baseUrl = ApiService.baseUrl;
 
   static Future<Map<String, String>> headers() async {
     final prefs = await SharedPreferences.getInstance();

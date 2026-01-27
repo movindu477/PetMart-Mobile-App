@@ -8,6 +8,7 @@ import 'register.dart';
 import 'profile.dart';
 import '../services/favorite_service.dart';
 import '../services/cart_service.dart';
+import '../services/api_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -24,7 +25,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  static const String baseUrl = "http://10.0.2.2/SSPLaravel/public/api";
+  static final String baseUrl = ApiService.baseUrl;
 
   @override
   void initState() {

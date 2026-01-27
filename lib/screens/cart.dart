@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'homepage.dart';
 import 'shop.dart';
-import 'profile.dart';
 import 'payment.dart';
 import '../services/cart_service.dart';
 import '../services/cart_cache_service.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 
+// This page manages the user's shopping cart, allowing them to view, update, or remove items.
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
 
@@ -14,11 +14,15 @@ class CartPage extends StatefulWidget {
 }
 
 class _CartPageState extends State<CartPage> {
-  int _selectedIndex = 2;
+  // We keep track of the selected tab for the bottom nav bar
+  final int _selectedIndex = 2;
+
+  // List to hold the items currently in the cart
   List<Map<String, dynamic>> cartItems = [];
   bool isLoading = true;
   String? errorMessage;
 
+  // Since we might get image URLs from different sources, this helper ensures they are valid
   String _getImageUrl(String imageUrl) {
     if (imageUrl.isEmpty) return '';
 
@@ -40,9 +44,11 @@ class _CartPageState extends State<CartPage> {
   @override
   void initState() {
     super.initState();
+    // Load existing cart items when the page opens
     _loadCart();
   }
 
+  // Fetches the latest cart items from our backend service using the CartService.
   Future<void> _loadCart() async {
     try {
       setState(() {
@@ -64,6 +70,7 @@ class _CartPageState extends State<CartPage> {
     }
   }
 
+  // Calculates the total price of all items in the cart dynamically
   double get totalPrice {
     return cartItems.fold(0.0, (sum, item) {
       final price = double.parse(item['price'].toString());
@@ -72,12 +79,14 @@ class _CartPageState extends State<CartPage> {
     });
   }
 
+  // Updates quantity of an item. If quantity becomes 0, we ask to remove it.
   Future<void> _updateQuantity(int index, int newQuantity) async {
     if (newQuantity <= 0) {
       await _removeItem(index);
       return;
     }
 
+    // Show a loading spinner on the specific item being updated
     if (mounted && index < cartItems.length) {
       setState(() {
         cartItems[index]['isUpdating'] = true;
@@ -96,22 +105,27 @@ class _CartPageState extends State<CartPage> {
         throw Exception('Invalid pet ID');
       }
 
+      // Optimistically update the UI for better UX
       if (mounted && index < cartItems.length) {
         setState(() {
           cartItems[index]['quantity'] = newQuantity;
         });
       }
 
+      // Attempt to sync with the backend
       try {
         await CartService.updateQuantity(petId, newQuantity);
       } catch (apiError) {
         debugPrint("API update failed, updating SQLite only: $apiError");
       }
 
+      // Also update our local cache logic
       await CartCacheService.updateQuantity(petId, newQuantity);
 
+      // Refresh to ensure everything is in sync
       await _loadCart();
     } catch (e) {
+      // If something fails, revert and show an error
       await _loadCart();
 
       if (!mounted) return;
@@ -157,6 +171,7 @@ class _CartPageState extends State<CartPage> {
     }
   }
 
+  // Allows users to remove an item they no longer want to buy
   Future<void> _removeItem(int index) async {
     try {
       final petIdValue = cartItems[index]['pet_id'];
@@ -173,6 +188,7 @@ class _CartPageState extends State<CartPage> {
 
       if (!mounted) return;
 
+      // Give feedback that removal was successful
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -216,6 +232,7 @@ class _CartPageState extends State<CartPage> {
     }
   }
 
+  // Removes everything from the cart - start fresh!
   Future<void> _clearCart() async {
     try {
       for (final item in cartItems) {
@@ -272,6 +289,7 @@ class _CartPageState extends State<CartPage> {
     }
   }
 
+  // Helper widget to build each individual card item in the list
   Widget _buildCartItem(Map<String, dynamic> item, int index) {
     final theme = Theme.of(context);
     final price = double.parse(item['price'].toString());
@@ -301,6 +319,7 @@ class _CartPageState extends State<CartPage> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Product image thumbnail
             Container(
               width: 90,
               height: 90,
@@ -380,6 +399,7 @@ class _CartPageState extends State<CartPage> {
                   ),
                   const SizedBox(height: 12),
 
+                  // Quantity controls (plus/minus)
                   Row(
                     children: [
                       Container(
@@ -470,6 +490,7 @@ class _CartPageState extends State<CartPage> {
                         ),
                       ),
                       const Spacer(),
+                      // Delete button
                       IconButton(
                         icon: isUpdating
                             ? SizedBox(
@@ -504,37 +525,6 @@ class _CartPageState extends State<CartPage> {
         ),
       ),
     );
-  }
-
-  void _onItemTapped(int index) {
-    if (index == _selectedIndex) return;
-
-    setState(() {
-      _selectedIndex = index;
-    });
-
-    switch (index) {
-      case 0:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
-        break;
-      case 1:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ShopPage()),
-        );
-        break;
-      case 2:
-        break;
-      case 3:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const ProfilePage()),
-        );
-        break;
-    }
   }
 
   @override
@@ -576,6 +566,7 @@ class _CartPageState extends State<CartPage> {
         ],
       ),
       body: SafeArea(
+        // Handling the various states: Loading, Error, or Success
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : errorMessage != null
@@ -613,6 +604,7 @@ class _CartPageState extends State<CartPage> {
               )
             : Column(
                 children: [
+                  // Cart summary header
                   if (cartItems.isNotEmpty)
                     Container(
                       width: double.infinity,
@@ -812,65 +804,7 @@ class _CartPageState extends State<CartPage> {
                 ],
               ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(
-              color: theme.colorScheme.outline.withOpacity(0.1),
-              width: 1,
-            ),
-          ),
-        ),
-        child: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: _onItemTapped,
-          backgroundColor: theme.colorScheme.surface,
-          elevation: 0,
-          height: 64,
-          indicatorColor: theme.colorScheme.primaryContainer,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          destinations: [
-            NavigationDestination(
-              icon: Icon(
-                Icons.home_outlined,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              selectedIcon: Icon(Icons.home, color: theme.colorScheme.primary),
-              label: "Home",
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.store_outlined,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              selectedIcon: Icon(Icons.store, color: theme.colorScheme.primary),
-              label: "Shop",
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.shopping_cart_outlined,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              selectedIcon: Icon(
-                Icons.shopping_cart,
-                color: theme.colorScheme.primary,
-              ),
-              label: "Cart",
-            ),
-            NavigationDestination(
-              icon: Icon(
-                Icons.person_outline,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              selectedIcon: Icon(
-                Icons.person,
-                color: theme.colorScheme.primary,
-              ),
-              label: "Profile",
-            ),
-          ],
-        ),
-      ),
+      bottomNavigationBar: CustomBottomNavBar(selectedIndex: _selectedIndex),
     );
   }
 }
