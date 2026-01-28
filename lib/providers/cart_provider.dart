@@ -25,17 +25,16 @@ class CartProvider with ChangeNotifier {
 
     try {
       final headers = await ApiService.authHeaders();
-      // Check if online
+      // If we have a token, API is the source of truth
       if (headers.containsKey('Authorization')) {
-        final response = await http.get(
-          Uri.parse('${ApiService.baseUrl}/cart'),
-          headers: headers,
-        );
+        final response = await http
+            .get(Uri.parse('${ApiService.baseUrl}/cart'), headers: headers)
+            .timeout(const Duration(seconds: 10));
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           if (data['success'] == true) {
-            final List<dynamic> list = data['data'];
+            final List<dynamic> list = data['data'] ?? [];
 
             _cartItems = list.map((item) {
               return CartItem(
@@ -45,7 +44,7 @@ class CartProvider with ChangeNotifier {
                     ? (item['price'] as int).toDouble()
                     : (item['price'] is String)
                     ? double.parse(item['price'])
-                    : item['price'],
+                    : (item['price'] as num).toDouble(),
                 imageUrl: item['image_url'],
                 quantity: (item['quantity'] is int)
                     ? item['quantity']
@@ -55,24 +54,41 @@ class CartProvider with ChangeNotifier {
               );
             }).toList();
 
-            // Cache to SQFlite
+            // Sync with local DB
             await DatabaseHelper().clearCart();
             for (var item in _cartItems) {
               await DatabaseHelper().insertCartItem(item);
             }
+          } else {
+            // API successful but returned fail? Clear state.
+            await _clearInternal();
           }
+        } else if (response.statusCode == 401) {
+          // Token expired? Clear cart.
+          await _clearInternal();
         }
       } else {
-        // Load from local DB if no token
+        // Not logged in: Local guest cart is source of truth
         _cartItems = await DatabaseHelper().getCartItems();
       }
     } catch (e) {
       debugPrint('Error fetching cart: $e');
+      // On error, we fallback to local DB only if not strictly requiring API sync
       _cartItems = await DatabaseHelper().getCartItems();
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _clearInternal() async {
+    _cartItems = [];
+    await DatabaseHelper().clearCart();
+  }
+
+  Future<void> clearLocalCart() async {
+    await _clearInternal();
+    notifyListeners();
   }
 
   Future<void> addToCart(int productId) async {

@@ -382,7 +382,7 @@ class _PaymentPageState extends State<PaymentPage> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: endColor.withValues(alpha: 0.3),
+            color: endColor.withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -459,7 +459,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   Text(
                     "Card Holder",
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: Colors.white.withOpacity(0.7),
                       fontSize: 10,
                     ),
                   ),
@@ -482,7 +482,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   Text(
                     "Expiry Date",
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: Colors.white.withOpacity(0.7),
                       fontSize: 10,
                     ),
                   ),
@@ -509,14 +509,14 @@ class _PaymentPageState extends State<PaymentPage> {
                       left: 0,
                       child: CircleAvatar(
                         radius: 12,
-                        backgroundColor: Colors.red.withValues(alpha: 0.8),
+                        backgroundColor: Colors.red.withOpacity(0.8),
                       ),
                     ),
                     Positioned(
                       right: 0,
                       child: CircleAvatar(
                         radius: 12,
-                        backgroundColor: Colors.orange.withValues(alpha: 0.8),
+                        backgroundColor: Colors.orange.withOpacity(0.8),
                       ),
                     ),
                   ],
@@ -574,7 +574,7 @@ class _PaymentPageState extends State<PaymentPage> {
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: Colors.black.withOpacity(0.1),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),

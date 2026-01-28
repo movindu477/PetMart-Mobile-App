@@ -108,34 +108,57 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _startSplashing() async {
-    _controller.forward();
+    try {
+      _controller.forward();
 
-    // Check login status while splashing
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.checkLoginStatus();
+      // Check login status while splashing
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    await Future.delayed(const Duration(milliseconds: 4500));
-    if (mounted) {
-      // Determine where to go based on auth status
-      if (authProvider.isAuthenticated) {
+      // We wait for both the check to finish AND the animation time to pass
+      await Future.wait([
+        authProvider.checkLoginStatus().catchError(
+          (e) => debugPrint("Check error: $e"),
+        ),
+        Future.delayed(const Duration(milliseconds: 4500)),
+      ]).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint("Splash timeout");
+          return [null, null];
+        },
+      );
+
+      if (mounted) {
+        // Determine where to go based on auth status
+        if (authProvider.isAuthenticated) {
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const HomePage(),
+              transitionDuration: const Duration(milliseconds: 800),
+              transitionsBuilder: (_, a, __, c) =>
+                  FadeTransition(opacity: a, child: c),
+            ),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const LoginPage(),
+              transitionDuration: const Duration(milliseconds: 800),
+              transitionsBuilder: (_, a, __, c) =>
+                  FadeTransition(opacity: a, child: c),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Critical splash error: $e");
+      // Fallback navigation
+      if (mounted) {
         Navigator.pushReplacement(
           context,
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const HomePage(),
-            transitionDuration: const Duration(milliseconds: 800),
-            transitionsBuilder: (_, a, __, c) =>
-                FadeTransition(opacity: a, child: c),
-          ),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const LoginPage(),
-            transitionDuration: const Duration(milliseconds: 800),
-            transitionsBuilder: (_, a, __, c) =>
-                FadeTransition(opacity: a, child: c),
-          ),
+          MaterialPageRoute(builder: (_) => const LoginPage()),
         );
       }
     }
@@ -166,18 +189,12 @@ class _SplashScreenState extends State<SplashScreen>
           Positioned(
             top: -100,
             right: -100,
-            child: _buildCircle(
-              300,
-              const Color(0xFFBBDEFB).withValues(alpha: 0.3),
-            ),
+            child: _buildCircle(300, const Color(0xFFBBDEFB).withOpacity(0.3)),
           ),
           Positioned(
             bottom: -50,
             left: -50,
-            child: _buildCircle(
-              200,
-              const Color(0xFFBBDEFB).withValues(alpha: 0.3),
-            ),
+            child: _buildCircle(200, const Color(0xFFBBDEFB).withOpacity(0.3)),
           ),
           Center(
             child: Column(
@@ -194,7 +211,7 @@ class _SplashScreenState extends State<SplashScreen>
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.blue.withValues(alpha: 0.15),
+                            color: Colors.blue.withOpacity(0.15),
                             blurRadius: 30,
                             offset: const Offset(0, 10),
                             spreadRadius: 5,

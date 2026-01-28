@@ -29,13 +29,13 @@ class ApiService {
     final headers = await authHeaders();
 
     try {
-      final response = await http.get(url, headers: headers);
+      final response = await http
+          .get(url, headers: headers)
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
-        // Fallback: try /profile if /user fails, or just return null
-        // return null;
         debugPrint("Failed to fetch user profile: ${response.statusCode}");
       }
     } catch (e) {

@@ -224,7 +224,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+        side: BorderSide(color: Colors.grey.withOpacity(0.2)),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

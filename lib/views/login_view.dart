@@ -82,6 +82,7 @@ class _LoginPageState extends State<LoginPage> {
           _nameController.text.trim(),
           _emailController.text.trim(),
           _passwordController.text.trim(),
+          _confirmPasswordController.text.trim(),
         );
       }
 
@@ -131,7 +132,7 @@ class _LoginPageState extends State<LoginPage> {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
@@ -178,8 +179,8 @@ class _LoginPageState extends State<LoginPage> {
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withValues(alpha: 0.3),
-                              Colors.black.withValues(alpha: 0.6),
+                              Colors.black.withOpacity(0.3),
+                              Colors.black.withOpacity(0.6),
                             ],
                           ),
                         ),
@@ -273,9 +274,7 @@ class _LoginPageState extends State<LoginPage> {
                                               ? [
                                                   BoxShadow(
                                                     color: Colors.black
-                                                        .withValues(
-                                                          alpha: 0.05,
-                                                        ),
+                                                        .withOpacity(0.05),
                                                     blurRadius: 4,
                                                     offset: const Offset(0, 2),
                                                   ),
@@ -317,9 +316,7 @@ class _LoginPageState extends State<LoginPage> {
                                               ? [
                                                   BoxShadow(
                                                     color: Colors.black
-                                                        .withValues(
-                                                          alpha: 0.05,
-                                                        ),
+                                                        .withOpacity(0.05),
                                                     blurRadius: 4,
                                                     offset: const Offset(0, 2),
                                                   ),
@@ -459,7 +456,7 @@ class _LoginPageState extends State<LoginPage> {
                                       elevation: 8,
                                       shadowColor: const Color(
                                         0xFF1565C0,
-                                      ).withValues(alpha: 0.4),
+                                      ).withOpacity(0.4),
                                     ),
                                     child: auth.isLoading
                                         ? const CircularProgressIndicator(
@@ -530,7 +527,7 @@ class _LoginPageState extends State<LoginPage> {
             : null,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+          borderSide: BorderSide(color: Colors.black.withOpacity(0.05)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -538,7 +535,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
+          borderSide: BorderSide(color: Colors.red.withOpacity(0.5)),
         ),
         filled: true,
         fillColor: Colors.grey[50],
