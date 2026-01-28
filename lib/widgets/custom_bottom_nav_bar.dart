@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../screens/homepage.dart';
-import '../screens/shop.dart';
-import '../screens/cart.dart';
-import '../screens/profile.dart';
+import '../views/home_view.dart';
+import '../views/shop_view.dart';
+import '../views/cart_view.dart';
+import '../views/profile_view.dart';
 
 // This widget renders the floating bottom navigation bar seen across the app.
 // It uses a pill-shaped design for a modern look.
@@ -27,7 +27,7 @@ class CustomBottomNavBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(50),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -103,7 +103,7 @@ class CustomBottomNavBar extends StatelessWidget {
       ),
       child: Icon(
         icon,
-        color: isSelected ? Colors.black : Colors.white.withOpacity(0.65),
+        color: isSelected ? Colors.black : Colors.white.withValues(alpha: 0.65),
         size: 26,
       ),
     );

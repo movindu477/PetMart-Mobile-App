@@ -177,6 +177,23 @@ class _PaymentPageState extends State<PaymentPage> {
             children: [
               const SizedBox(height: 12),
 
+              // 1. Payment Method Toggle
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    _buildPaymentMethodTab("Credit Card", true),
+                    _buildPaymentMethodTab("Cash on Delivery", false),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
               if (_isCardPayment) ...[
                 // 2. Visual Credit Card
                 _buildCreditCard(cardDarkBlue, cardLightBlue),
@@ -365,7 +382,7 @@ class _PaymentPageState extends State<PaymentPage> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: endColor.withOpacity(0.3),
+            color: endColor.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -442,7 +459,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   Text(
                     "Card Holder",
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 10,
                     ),
                   ),
@@ -465,7 +482,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   Text(
                     "Expiry Date",
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 10,
                     ),
                   ),
@@ -492,14 +509,14 @@ class _PaymentPageState extends State<PaymentPage> {
                       left: 0,
                       child: CircleAvatar(
                         radius: 12,
-                        backgroundColor: Colors.red.withOpacity(0.8),
+                        backgroundColor: Colors.red.withValues(alpha: 0.8),
                       ),
                     ),
                     Positioned(
                       right: 0,
                       child: CircleAvatar(
                         radius: 12,
-                        backgroundColor: Colors.orange.withOpacity(0.8),
+                        backgroundColor: Colors.orange.withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -540,6 +557,40 @@ class _PaymentPageState extends State<PaymentPage> {
       ),
       counterText: '',
       suffixIcon: suffixIcon,
+    );
+  }
+
+  Widget _buildPaymentMethodTab(String title, bool isCard) {
+    final isSelected = _isCardPayment == isCard;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _isCardPayment = isCard),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.black : Colors.grey[600],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

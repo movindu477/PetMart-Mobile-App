@@ -45,19 +45,22 @@ class Product {
   String get fullImageUrl {
     if (imageUrl.isEmpty) return '';
 
-    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      return imageUrl;
+    // Normalize backslashes to forward slashes for URLs
+    String cleanUrl = imageUrl.replaceAll(r'\', '/');
+
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      return cleanUrl;
     }
 
-    if (imageUrl.startsWith('/')) {
-      return "${ApiService.contentUrl}$imageUrl";
+    if (cleanUrl.startsWith('/')) {
+      return "${ApiService.contentUrl}$cleanUrl";
     }
 
-    if (imageUrl.startsWith('storage/') || imageUrl.startsWith('images/')) {
-      return "${ApiService.contentUrl}/$imageUrl";
+    if (cleanUrl.startsWith('storage/') || cleanUrl.startsWith('images/')) {
+      return "${ApiService.contentUrl}/$cleanUrl";
     }
 
-    return "${ApiService.contentUrl}/storage/$imageUrl";
+    return "${ApiService.contentUrl}/storage/$cleanUrl";
   }
 
   Map<String, dynamic> toMap() {
@@ -69,5 +72,16 @@ class Product {
       'imageUrl': imageUrl,
       'productName': productName,
     };
+  }
+
+  factory Product.fromMap(Map<String, dynamic> map) {
+    return Product(
+      id: map['id'],
+      petType: map['petType'],
+      accessoriesType: map['accessoriesType'],
+      price: map['price'],
+      imageUrl: map['imageUrl'],
+      productName: map['productName'],
+    );
   }
 }

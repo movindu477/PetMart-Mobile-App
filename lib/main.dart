@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 
-import 'screens/login.dart';
+import 'providers/auth_provider.dart';
+import 'providers/product_provider.dart';
+import 'providers/cart_provider.dart';
+import 'views/login_view.dart';
+import 'views/home_view.dart';
 
-// import 'screens/main_screen.dart'; // Import MainScreen
-
-// This is where the app starts executing.
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -15,7 +17,17 @@ void main() {
 
   // Using a custom HTTP override to handle certificate issues if any
   HttpOverrides.global = MyHttpOverrides();
-  runApp(const PetShopApp());
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ProductProvider()),
+        ChangeNotifierProvider(create: (_) => CartProvider()),
+      ],
+      child: const PetShopApp(),
+    ),
+  );
 }
 
 // This class helps us bypass some security checks for development purposes.
@@ -65,13 +77,11 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // Setting up the animation controller for our splash effects
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
     );
 
-    // Fade effect for smooth appearance
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -79,7 +89,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Scale effect to make the logo pop
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
@@ -87,7 +96,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Slide effect to move things into place nicely
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero).animate(
           CurvedAnimation(
@@ -99,20 +107,37 @@ class _SplashScreenState extends State<SplashScreen>
     _startSplashing();
   }
 
-  // This function handles the timing and navigation to the home page
   void _startSplashing() async {
     _controller.forward();
+
+    // Check login status while splashing
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.checkLoginStatus();
+
     await Future.delayed(const Duration(milliseconds: 4500));
     if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const LoginPage(),
-          transitionDuration: const Duration(milliseconds: 800),
-          transitionsBuilder: (_, a, __, c) =>
-              FadeTransition(opacity: a, child: c),
-        ),
-      );
+      // Determine where to go based on auth status
+      if (authProvider.isAuthenticated) {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const HomePage(),
+            transitionDuration: const Duration(milliseconds: 800),
+            transitionsBuilder: (_, a, __, c) =>
+                FadeTransition(opacity: a, child: c),
+          ),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const LoginPage(),
+            transitionDuration: const Duration(milliseconds: 800),
+            transitionsBuilder: (_, a, __, c) =>
+                FadeTransition(opacity: a, child: c),
+          ),
+        );
+      }
     }
   }
 
@@ -129,7 +154,6 @@ class _SplashScreenState extends State<SplashScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // We use a nice gradient background here for a premium feel
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -139,20 +163,22 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
           ),
-
-          // Adding some decorative circles in the background
           Positioned(
             top: -100,
             right: -100,
-            child: _buildCircle(300, const Color(0xFFBBDEFB).withOpacity(0.3)),
+            child: _buildCircle(
+              300,
+              const Color(0xFFBBDEFB).withValues(alpha: 0.3),
+            ),
           ),
           Positioned(
             bottom: -50,
             left: -50,
-            child: _buildCircle(200, const Color(0xFFBBDEFB).withOpacity(0.3)),
+            child: _buildCircle(
+              200,
+              const Color(0xFFBBDEFB).withValues(alpha: 0.3),
+            ),
           ),
-
-          // This is the main content area with the logo and text
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -168,7 +194,7 @@ class _SplashScreenState extends State<SplashScreen>
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.blue.withOpacity(0.15),
+                            color: Colors.blue.withValues(alpha: 0.15),
                             blurRadius: 30,
                             offset: const Offset(0, 10),
                             spreadRadius: 5,
@@ -219,8 +245,6 @@ class _SplashScreenState extends State<SplashScreen>
               ],
             ),
           ),
-
-          // A loading bar at the bottom to show progress
           Positioned(
             bottom: 80,
             left: 48,
@@ -254,7 +278,6 @@ class _SplashScreenState extends State<SplashScreen>
     );
   }
 
-  // A helper function to create decorative background circles
   Widget _buildCircle(double size, Color color) {
     return Container(
       width: size,

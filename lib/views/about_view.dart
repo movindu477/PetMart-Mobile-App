@@ -26,7 +26,7 @@ class AboutPage extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   shadows: [
                     Shadow(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -52,8 +52,8 @@ class AboutPage extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.black.withOpacity(0.3),
-                          Colors.black.withOpacity(0.7),
+                          Colors.black.withValues(alpha: 0.3),
+                          Colors.black.withValues(alpha: 0.7),
                         ],
                       ),
                     ),
@@ -90,15 +90,12 @@ class AboutPage extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.secondary,
-          ],
+          colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.3),
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -109,7 +106,7 @@ class AboutPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -130,7 +127,7 @@ class AboutPage extends StatelessWidget {
           Text(
             'Your trusted partner in pet care since 2020',
             style: theme.textTheme.titleMedium?.copyWith(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
             ),
             textAlign: TextAlign.center,
           ),
@@ -139,14 +136,16 @@ class AboutPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStorySection(BuildContext context, ThemeData theme, bool isTablet) {
+  Widget _buildStorySection(
+    BuildContext context,
+    ThemeData theme,
+    bool isTablet,
+  ) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: isTablet ? 32 : 20),
       child: Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Padding(
           padding: EdgeInsets.all(isTablet ? 32 : 24),
           child: Column(
@@ -198,7 +197,11 @@ class AboutPage extends StatelessWidget {
     );
   }
 
-  Widget _buildValuesSection(BuildContext context, ThemeData theme, bool isTablet) {
+  Widget _buildValuesSection(
+    BuildContext context,
+    ThemeData theme,
+    bool isTablet,
+  ) {
     final values = [
       {
         'icon': Icons.favorite,
@@ -300,14 +303,16 @@ class AboutPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContactSection(BuildContext context, ThemeData theme, bool isTablet) {
+  Widget _buildContactSection(
+    BuildContext context,
+    ThemeData theme,
+    bool isTablet,
+  ) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: isTablet ? 32 : 20),
       child: Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
@@ -427,14 +432,10 @@ class AboutPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-              size: 24,
-            ),
+            child: Icon(icon, color: iconColor, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -474,7 +475,7 @@ class AboutPage extends StatelessWidget {
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.outline.withOpacity(0.2),
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
         ),
       ),
       child: IconButton(

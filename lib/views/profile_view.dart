@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 
-import 'login.dart';
-import 'homepage.dart';
-import 'favorites.dart';
-// import 'my_orders.dart'; // Placeholder
-import '../services/favorite_cache_service.dart';
-import '../services/cart_cache_service.dart';
+import 'login_view.dart';
+import 'home_view.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
-import '../services/api_service.dart';
+import '../providers/auth_provider.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -19,73 +15,12 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  String? _loggedEmail;
-  String _userName = "Jane Cooper";
-  String _phone = "(303) 555-0105"; // Default placeholder
-  String _address = "UK, 789 Pine Avenue"; // Default placeholder
-
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus();
-  }
-
-  Future<void> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('loggedEmail');
-    final token = prefs.getString('token');
-    final name = prefs.getString('loggedName');
-
-    if (email == null || token == null) {
-      if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginPage()),
-            );
-          }
-        });
-      }
-      return;
-    }
-
-    setState(() {
-      _loggedEmail = email;
-      if (name != null && name.isNotEmpty) {
-        _userName = name;
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AuthProvider>(context, listen: false).checkLoginStatus();
     });
-
-    _fetchUserData();
-  }
-
-  Future<void> _fetchUserData() async {
-    final response = await ApiService.fetchUserProfile();
-    if (response != null && mounted) {
-      // Handle potential wrappers if the API returns { "user": ... } or { "data": ... }
-      final userData = response['user'] ?? response['data'] ?? response;
-
-      setState(() {
-        if (userData['name'] != null) _userName = userData['name'];
-        if (userData['email'] != null) _loggedEmail = userData['email'];
-
-        // Try multiple common keys for phone
-        _phone =
-            userData['phone']?.toString() ??
-            userData['phone_number']?.toString() ??
-            userData['contact_no']?.toString() ??
-            userData['mobile']?.toString() ??
-            "Not set";
-
-        // Try multiple common keys for address
-        _address =
-            userData['address']?.toString() ??
-            userData['location']?.toString() ??
-            userData['full_address']?.toString() ??
-            "Not set";
-      });
-    }
   }
 
   Future<void> _handleLogout() async {
@@ -100,20 +35,10 @@ class _ProfilePageState extends State<ProfilePage> {
       onConfirmBtnTap: () async {
         Navigator.pop(context); // Close dialog
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('loggedEmail');
-        await prefs.remove('token');
-
-        try {
-          await FavoriteCacheService.clearFavorites();
-          await CartCacheService.clearCart();
-        } catch (e) {
-          debugPrint("Error clearing cache: $e");
-        }
+        await Provider.of<AuthProvider>(context, listen: false).logout();
 
         if (!mounted) return;
 
-        // Redirect to unified Login Page
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -127,6 +52,14 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     // Dark Color from design
     final darkColor = const Color(0xFF18181B);
+
+    // Watch AuthProvider
+    final authProvider = Provider.of<AuthProvider>(context);
+
+    final userName = authProvider.user?['name'] ?? "Guest User";
+    final userEmail = authProvider.user?['email'] ?? "guest@example.com";
+    final phone = authProvider.user?['phone'] ?? "Not set";
+    final address = authProvider.user?['address'] ?? "Not set";
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -164,7 +97,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white24),
-                            color: Colors.white.withOpacity(0.05),
+                            color: Colors.white.withValues(alpha: 0.05),
                           ),
                           child: const Icon(
                             Icons.arrow_back_ios_new,
@@ -229,7 +162,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   // Name & Email
                   Text(
-                    _userName,
+                    userName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -238,9 +171,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _loggedEmail ?? "Loading...",
+                    userEmail,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 14,
                     ),
                   ),
@@ -253,25 +186,21 @@ class _ProfilePageState extends State<ProfilePage> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  _buildDetailField("Full Name", _userName, isEditable: true),
+                  _buildDetailField("Full Name", userName, isEditable: true),
                   _buildDetailField(
                     "Nickname",
-                    _userName.split(' ').first,
+                    userName.split(' ').first,
                     isEditable: true,
                   ),
                   _buildDetailField(
                     "Email",
-                    _loggedEmail ?? "Not set",
+                    userEmail,
                     icon: Icons.email_outlined,
                   ),
-                  _buildDetailField(
-                    "Phone",
-                    _phone,
-                    icon: Icons.phone_outlined,
-                  ),
+                  _buildDetailField("Phone", phone, icon: Icons.phone_outlined),
                   _buildDetailField(
                     "Address",
-                    _address,
+                    address,
                     icon: Icons.location_on_outlined,
                   ),
 
@@ -305,12 +234,12 @@ class _ProfilePageState extends State<ProfilePage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
-        border: Border.all(color: Colors.grey.withOpacity(0.1)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
@@ -358,11 +287,9 @@ class _ProfilePageState extends State<ProfilePage> {
       decoration: BoxDecoration(
         color: Colors.white, // In case background is grey
         borderRadius: BorderRadius.circular(16),
-        // Design usually implies flat or subtle shadow
-        // border: Border.all(color: Colors.grey.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

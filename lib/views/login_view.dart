@@ -1,14 +1,14 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 
-import 'homepage.dart';
-import 'profile.dart'; // Redirect to Profile after register if needed, or Home
-import '../services/favorite_service.dart';
-import '../services/cart_service.dart';
-import '../services/api_service.dart';
+import '../providers/auth_provider.dart';
+import '../providers/cart_provider.dart';
+import '../providers/product_provider.dart';
+// We will create this next
+import 'home_view.dart';
+// We will create this next
+// import 'profile_view.dart';
 
 class LoginPage extends StatefulWidget {
   final bool isRegister;
@@ -19,56 +19,32 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // Toggle State
   late bool _isLogin;
-
-  @override
-  void initState() {
-    super.initState();
-    _isLogin = !widget.isRegister;
-    _checkLoginStatus();
-  }
 
   // Controllers
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
-  // Register specific controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
 
-  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
-  static final String baseUrl = ApiService.baseUrl;
-
-  Future<void> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('loggedEmail');
-    if (email != null && mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
-    }
-  }
-
-  Future<void> _saveLogin(String email, String token, String name) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('loggedEmail', email);
-    await prefs.setString('token', token);
-    if (name.isNotEmpty) await prefs.setString('loggedName', name);
+  @override
+  void initState() {
+    super.initState();
+    _isLogin = !widget.isRegister;
   }
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     if (!_isLogin) {
-      // Registration Validation
       if (_passwordController.text != _confirmPasswordController.text) {
         QuickAlert.show(
           context: context,
@@ -80,8 +56,6 @@ class _LoginPageState extends State<LoginPage> {
       }
     }
 
-    setState(() => _isLoading = true);
-
     QuickAlert.show(
       context: context,
       type: QuickAlertType.loading,
@@ -91,114 +65,61 @@ class _LoginPageState extends State<LoginPage> {
     );
 
     try {
-      final endpoint = _isLogin ? "/login" : "/register";
-      final body = _isLogin
-          ? {
-              "email": _emailController.text.trim(),
-              "password": _passwordController.text.trim(),
-            }
-          : {
-              "name": _nameController.text.trim(),
-              "email": _emailController.text.trim(),
-              "password": _passwordController.text.trim(),
-              "password_confirmation": _confirmPasswordController.text.trim(),
-            };
+      if (_isLogin) {
+        await authProvider.login(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
 
-      final response = await http.post(
-        Uri.parse("$baseUrl$endpoint"),
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: jsonEncode(body),
-      );
-
-      final data = jsonDecode(response.body);
+        // Sync Cart & Products after login
+        if (mounted) {
+          // We can do this in background
+          Provider.of<CartProvider>(context, listen: false).fetchCart();
+          Provider.of<ProductProvider>(context, listen: false).fetchProducts();
+        }
+      } else {
+        await authProvider.register(
+          _nameController.text.trim(),
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+      }
 
       if (!mounted) return;
       Navigator.pop(context); // Close loading
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final token = data['token'];
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.success,
+        title: 'Success',
+        text: _isLogin ? 'Login successful!' : 'Account created successfully!',
+        autoCloseDuration: const Duration(seconds: 2),
+      );
 
-        if (token != null) {
-          String name = "";
-          if (!_isLogin) {
-            name = _nameController.text.trim();
-          } else if (data['user'] != null && data['user']['name'] != null) {
-            name = data['user']['name'];
-          } else if (data['name'] != null) {
-            name = data['name'];
-          }
-          await _saveLogin(_emailController.text.trim(), token, name);
+      await Future.delayed(const Duration(seconds: 2));
 
-          if (_isLogin) {
-            // Fetch data on login
-            try {
-              await FavoriteService.fetchFavorites();
-              await CartService.fetchCart();
-              await CartService.syncLocalCartToApi();
-            } catch (e) {
-              debugPrint("Sync error: $e");
-            }
-          }
-        } else if (_isLogin) {
-          // Login success but no token? rare
-        }
-
-        QuickAlert.show(
-          context: context,
-          type: QuickAlertType.success,
-          title: 'Success',
-          text: _isLogin
-              ? 'Login successful!'
-              : 'Account created successfully!',
-          autoCloseDuration: const Duration(seconds: 2),
-        );
-
-        await Future.delayed(const Duration(seconds: 2));
-
-        if (!mounted) return;
-
-        // Navigate
-        if (_isLogin) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const HomePage()),
-          );
-        } else {
-          // For register, maybe go to Profile or Home? User said "profile" in register.dart
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const ProfilePage(),
-            ), // changed from HomePage to match register flow? Or check. Let's use HomePage for consistency or Profile. Register.dart used ProfilePage.
-          );
-        }
-      } else {
-        QuickAlert.show(
-          context: context,
-          type: QuickAlertType.error,
-          title: 'Failed',
-          text: data['message'] ?? data['error'] ?? "Operation failed",
-        );
-      }
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.pop(context); // Close loading
       QuickAlert.show(
         context: context,
         type: QuickAlertType.error,
-        title: 'Error',
-        text: 'Server connection failed. Try again.',
+        title: 'Failed',
+        text: e.toString().replaceAll('Exception: ', ''),
       );
     }
-
-    setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Use Provider isLoading if you want to disable button from Provider state
+    // final isLoading = Provider.of<AuthProvider>(context).isLoading;
+
     // Determine screen size for responsiveness
     return Scaffold(
       backgroundColor: Colors.black, // Dark background behind image
@@ -210,23 +131,16 @@ class _LoginPageState extends State<LoginPage> {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
           ),
           onPressed: () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (_) => const HomePage()),
-              );
-            }
+            // Logic to handle back press if needed, or just exit app if it's the root
           },
         ),
-        actions: const [], // Ensure no stray icons appear
+        actions: const [],
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -258,20 +172,18 @@ class _LoginPageState extends State<LoginPage> {
                         errorBuilder: (c, e, s) =>
                             Container(color: Colors.blueGrey.shade900),
                       ),
-                      // Dark overlay gradient for text visibility
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withOpacity(0.3),
-                              Colors.black.withOpacity(0.6),
+                              Colors.black.withValues(alpha: 0.3),
+                              Colors.black.withValues(alpha: 0.6),
                             ],
                           ),
                         ),
                       ),
-                      // Header Text
                       Positioned(
                         top: MediaQuery.of(context).padding.top + 60,
                         left: 24,
@@ -361,7 +273,9 @@ class _LoginPageState extends State<LoginPage> {
                                               ? [
                                                   BoxShadow(
                                                     color: Colors.black
-                                                        .withOpacity(0.05),
+                                                        .withValues(
+                                                          alpha: 0.05,
+                                                        ),
                                                     blurRadius: 4,
                                                     offset: const Offset(0, 2),
                                                   ),
@@ -403,7 +317,9 @@ class _LoginPageState extends State<LoginPage> {
                                               ? [
                                                   BoxShadow(
                                                     color: Colors.black
-                                                        .withOpacity(0.05),
+                                                        .withValues(
+                                                          alpha: 0.05,
+                                                        ),
                                                     blurRadius: 4,
                                                     offset: const Offset(0, 2),
                                                   ),
@@ -444,7 +360,10 @@ class _LoginPageState extends State<LoginPage> {
                                       icon: Icons.person_outline_rounded,
                                       controller: _nameController,
                                       validator: (v) =>
-                                          v!.isEmpty ? "Enter your name" : null,
+                                          (!_isLogin &&
+                                              (v == null || v.isEmpty))
+                                          ? "Enter your name"
+                                          : null,
                                     ),
                                     const SizedBox(height: 16),
                                   ],
@@ -494,7 +413,8 @@ class _LoginPageState extends State<LoginPage> {
                                         () => _obscureConfirmPassword =
                                             !_obscureConfirmPassword,
                                       ),
-                                      validator: (v) => v!.isEmpty
+                                      validator: (v) =>
+                                          (!_isLogin && v!.isEmpty)
                                           ? "Confirm password"
                                           : null,
                                     ),
@@ -520,71 +440,47 @@ class _LoginPageState extends State<LoginPage> {
 
                             const SizedBox(height: 24),
 
-                            // Checkbox (Remember me) - Animated
-                            AnimatedSize(
-                              duration: const Duration(milliseconds: 300),
-                              child: _isLogin
-                                  ? Row(
-                                      children: [
-                                        SizedBox(
-                                          height: 24,
-                                          width: 24,
-                                          child: Checkbox(
-                                            value: false,
-                                            onChanged: (v) {},
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
+                            Consumer<AuthProvider>(
+                              builder: (context, auth, child) {
+                                return SizedBox(
+                                  height: 56,
+                                  child: ElevatedButton(
+                                    onPressed: auth.isLoading
+                                        ? null
+                                        : _handleSubmit,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(
+                                        0xFF1565C0,
+                                      ), // Blue
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                      elevation: 8,
+                                      shadowColor: const Color(
+                                        0xFF1565C0,
+                                      ).withValues(alpha: 0.4),
+                                    ),
+                                    child: auth.isLoading
+                                        ? const CircularProgressIndicator(
+                                            color: Colors.white,
+                                          )
+                                        : AnimatedSwitcher(
+                                            duration: const Duration(
+                                              milliseconds: 300,
+                                            ),
+                                            child: Text(
+                                              _isLogin ? "Login" : "Register",
+                                              key: ValueKey(_isLogin),
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        const Text(
-                                          "Remember me",
-                                          style: TextStyle(color: Colors.grey),
-                                        ),
-                                      ],
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Button
-                            SizedBox(
-                              height: 56,
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _handleSubmit,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(
-                                    0xFF1565C0,
-                                  ), // Blue
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
                                   ),
-                                  elevation: 8,
-                                  shadowColor: const Color(
-                                    0xFF1565C0,
-                                  ).withOpacity(0.4),
-                                ),
-                                child: _isLoading
-                                    ? const CircularProgressIndicator(
-                                        color: Colors.white,
-                                      )
-                                    : AnimatedSwitcher(
-                                        duration: const Duration(
-                                          milliseconds: 300,
-                                        ),
-                                        child: Text(
-                                          _isLogin ? "Login" : "Register",
-                                          key: ValueKey(_isLogin),
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                              ),
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -634,7 +530,7 @@ class _LoginPageState extends State<LoginPage> {
             : null,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.grey.withOpacity(0.2)),
+          borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -642,7 +538,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.red.withOpacity(0.5)),
+          borderSide: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
         ),
         filled: true,
         fillColor: Colors.grey[50],

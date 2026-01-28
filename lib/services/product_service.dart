@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
@@ -23,9 +24,6 @@ class ProductService {
         Uri.parse(_url),
         headers: await _headers(),
       );
-
-      print("PRODUCT STATUS: ${response.statusCode}");
-      print("PRODUCT BODY: ${response.body}");
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
@@ -58,7 +56,7 @@ class ProductService {
           try {
             return Product.fromJson(e as Map<String, dynamic>);
           } catch (e) {
-            print("Error parsing product: $e");
+            debugPrint("Error parsing product: $e");
             rethrow;
           }
         }).toList();
@@ -72,7 +70,7 @@ class ProductService {
         "Failed to load products (${response.statusCode}): ${response.body}",
       );
     } catch (e) {
-      print("PRODUCT SERVICE ERROR: $e");
+      debugPrint("PRODUCT SERVICE ERROR: $e");
       rethrow;
     }
   }

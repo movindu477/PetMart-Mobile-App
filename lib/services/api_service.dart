@@ -1,10 +1,11 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = "http://10.0.2.2/SSPLaravel/public/api";
-  static const String contentUrl = "http://10.0.2.2/SSPLaravel/public";
+  static const String baseUrl = "http://10.0.2.2:8000/api";
+  static const String contentUrl = "http://10.0.2.2:8000";
 
   static Future<Map<String, String>> authHeaders() async {
     final prefs = await SharedPreferences.getInstance();
@@ -35,10 +36,10 @@ class ApiService {
       } else {
         // Fallback: try /profile if /user fails, or just return null
         // return null;
-        print("Failed to fetch user profile: ${response.statusCode}");
+        debugPrint("Failed to fetch user profile: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error fetching user profile: $e");
+      debugPrint("Error fetching user profile: $e");
     }
     return null;
   }

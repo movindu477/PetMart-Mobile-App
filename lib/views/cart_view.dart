@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'shop.dart';
+import 'package:shimmer/shimmer.dart';
 
+import 'shop_view.dart';
 import '../services/payment_service.dart';
-import '../services/cart_service.dart';
-import '../services/cart_cache_service.dart';
-import '../services/api_service.dart'; // For base URL if needed
+import '../providers/cart_provider.dart';
+import '../models/cart_item.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});
@@ -16,118 +17,20 @@ class CartPage extends StatefulWidget {
 }
 
 class _CartPageState extends State<CartPage> {
-  List<Map<String, dynamic>> cartItems = [];
-  bool isLoading = true;
-  String? errorMessage;
-
-  final double deliveryFee = 0.00;
-
   @override
   void initState() {
     super.initState();
-    _loadCart();
-  }
-
-  // Fetch latest cart data
-  Future<void> _loadCart() async {
-    try {
-      setState(() {
-        isLoading = true;
-        errorMessage = null;
-      });
-
-      final data = await CartService.fetchCart();
-      // data should be List<dynamic>
-
-      if (mounted) {
-        setState(() {
-          cartItems = List<Map<String, dynamic>>.from(data);
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-          errorMessage = "Failed to load cart: $e";
-        });
-      }
-    }
-  }
-
-  // Validate and format image URL
-  String _getImageUrl(String? imageUrl) {
-    if (imageUrl == null || imageUrl.isEmpty) return '';
-    if (imageUrl.startsWith('http')) return imageUrl;
-
-    // Use ApiService consts if available
-    if (imageUrl.startsWith('/')) {
-      return "${ApiService.contentUrl}$imageUrl";
-    }
-    return "${ApiService.contentUrl}/$imageUrl";
-  }
-
-  double get subtotal {
-    return cartItems.fold(0.0, (sum, item) {
-      final price = double.tryParse(item['price'].toString()) ?? 0.0;
-      final qty = int.tryParse(item['quantity'].toString()) ?? 0;
-      return sum + (price * qty);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<CartProvider>(context, listen: false).fetchCart();
     });
-  }
-
-  double get totalCost => subtotal + deliveryFee;
-
-  Future<void> _updateQuantity(int index, int newQuantity) async {
-    if (newQuantity < 1) return; // Minimum 1
-
-    final item = cartItems[index];
-    final petId = int.tryParse(item['pet_id'].toString()) ?? 0;
-    if (petId == 0) return;
-
-    // Optimistic Update
-    setState(() {
-      cartItems[index]['quantity'] = newQuantity;
-    });
-
-    try {
-      await CartService.updateQuantity(petId, newQuantity);
-      // Optional: Update cache
-      await CartCacheService.updateQuantity(petId, newQuantity);
-    } catch (e) {
-      // Revert on failure (or just reload)
-      _loadCart();
-    }
-  }
-
-  Future<void> _removeItem(int index) async {
-    final item = cartItems[index];
-    final petId = int.tryParse(item['pet_id'].toString()) ?? 0;
-    if (petId == 0) return;
-
-    // Optimistic Removal
-    final removedItem = cartItems[index];
-    setState(() {
-      cartItems.removeAt(index);
-    });
-
-    try {
-      await CartService.removeFromCart(petId);
-      // Success, no action needed
-    } catch (e) {
-      // Revert if failed
-      setState(() {
-        cartItems.insert(index, removedItem);
-      });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Failed to remove item")));
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    const backgroundColor = Color(0xFFFDFBF7); // Cream background
-    const accentColor = Color.fromARGB(255, 0, 0, 0); // Orange/Coral
+    const backgroundColor = Color(0xFFFDFBF7);
+    const accentColor = Color.fromARGB(255, 0, 0, 0);
+
+    final cartProvider = Provider.of<CartProvider>(context);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -157,17 +60,37 @@ class _CartPageState extends State<CartPage> {
             padding: const EdgeInsets.only(right: 16.0),
             child: CircleAvatar(
               backgroundColor: Colors.white,
-              child: const Icon(
-                Icons.shopping_bag_outlined,
-                color: Colors.black,
+              child: Stack(
+                children: [
+                  const Icon(Icons.shopping_bag_outlined, color: Colors.black),
+                  if (cartProvider.cartItems.isNotEmpty)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          "${cartProvider.cartItems.length}",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
         ],
       ),
-      body: isLoading
+      body: cartProvider.isLoading
           ? const Center(child: CircularProgressIndicator(color: accentColor))
-          : cartItems.isEmpty
+          : cartProvider.cartItems.isEmpty
           ? _buildEmptyCart()
           : OrientationBuilder(
               builder: (context, orientation) {
@@ -175,22 +98,24 @@ class _CartPageState extends State<CartPage> {
                   return Row(
                     children: [
                       Expanded(
-                        flex: 3, // Give list more space
+                        flex: 3,
                         child: ListView.builder(
                           padding: const EdgeInsets.all(20),
-                          itemCount: cartItems.length,
+                          itemCount: cartProvider.cartItems.length,
                           itemBuilder: (context, index) {
-                            return _buildCartCard(cartItems[index], index);
+                            return _buildCartCard(
+                              cartProvider.cartItems[index],
+                              accentColor,
+                            );
                           },
                         ),
                       ),
                       Container(
-                        width: 350, // Fixed width for summary in landscape
+                        width: 350,
                         color: Colors.white,
-                        height: double.infinity, // Full height
-                        // Add scroll view for summary if needed on small heights
+                        height: double.infinity,
                         child: SingleChildScrollView(
-                          child: _buildBottomSection(accentColor),
+                          child: _buildBottomSection(accentColor, cartProvider),
                         ),
                       ),
                     ],
@@ -201,13 +126,16 @@ class _CartPageState extends State<CartPage> {
                       Expanded(
                         child: ListView.builder(
                           padding: const EdgeInsets.all(20),
-                          itemCount: cartItems.length,
+                          itemCount: cartProvider.cartItems.length,
                           itemBuilder: (context, index) {
-                            return _buildCartCard(cartItems[index], index);
+                            return _buildCartCard(
+                              cartProvider.cartItems[index],
+                              accentColor,
+                            );
                           },
                         ),
                       ),
-                      _buildBottomSection(accentColor),
+                      _buildBottomSection(accentColor, cartProvider),
                     ],
                   );
                 }
@@ -253,11 +181,11 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  Widget _buildCartCard(Map<String, dynamic> item, int index) {
-    final name = item['product_name'] ?? 'Unknown Item';
-    final price = double.tryParse(item['price'].toString()) ?? 0.0;
-    final qty = int.tryParse(item['quantity'].toString()) ?? 1;
-    final imageUrl = _getImageUrl(item['image_url']?.toString());
+  Widget _buildCartCard(CartItem item, Color accentColor) {
+    // For local storage vs API images, using CartItem utility from Product model would be ideal
+    // But we know API cache logic
+    // Use the robust utility getter we just added
+    String imageUrl = item.fullImageUrl;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -267,7 +195,7 @@ class _CartPageState extends State<CartPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -279,7 +207,6 @@ class _CartPageState extends State<CartPage> {
           Container(
             width: 80,
             height: 80,
-            // padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(15),
@@ -290,7 +217,12 @@ class _CartPageState extends State<CartPage> {
                 imageUrl: imageUrl,
                 fit: BoxFit.cover,
                 errorWidget: (context, url, error) =>
-                    const Icon(Icons.error_outline),
+                    const Icon(Icons.image_not_supported, color: Colors.grey),
+                placeholder: (context, url) => Shimmer.fromColors(
+                  baseColor: Colors.grey[300]!,
+                  highlightColor: Colors.grey[100]!,
+                  child: Container(color: Colors.white, height: 80, width: 80),
+                ),
               ),
             ),
           ),
@@ -306,7 +238,7 @@ class _CartPageState extends State<CartPage> {
                   children: [
                     Expanded(
                       child: Text(
-                        name,
+                        item.productName,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -316,7 +248,12 @@ class _CartPageState extends State<CartPage> {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () => _removeItem(index),
+                      onTap: () {
+                        Provider.of<CartProvider>(
+                          context,
+                          listen: false,
+                        ).removeFromCart(item.productId);
+                      },
                       child: const Icon(
                         Icons.close,
                         size: 20,
@@ -326,7 +263,7 @@ class _CartPageState extends State<CartPage> {
                   ],
                 ),
                 Text(
-                  "500gm", // Placeholder for weight/size if available or hardcoded
+                  item.petType,
                   style: TextStyle(color: Colors.grey[500], fontSize: 12),
                 ),
                 const SizedBox(height: 8),
@@ -334,7 +271,7 @@ class _CartPageState extends State<CartPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "\$${price.toStringAsFixed(2)}",
+                      "\$${item.price.toStringAsFixed(2)}",
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -354,17 +291,35 @@ class _CartPageState extends State<CartPage> {
                       child: Row(
                         children: [
                           GestureDetector(
-                            onTap: () => _updateQuantity(index, qty - 1),
+                            onTap: () {
+                              if (item.quantity > 1) {
+                                Provider.of<CartProvider>(
+                                  context,
+                                  listen: false,
+                                ).updateQuantity(
+                                  item.productId,
+                                  item.quantity - 1,
+                                );
+                              }
+                            },
                             child: const Icon(Icons.remove, size: 18),
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            "$qty",
+                            "${item.quantity}",
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 12),
                           GestureDetector(
-                            onTap: () => _updateQuantity(index, qty + 1),
+                            onTap: () {
+                              Provider.of<CartProvider>(
+                                context,
+                                listen: false,
+                              ).updateQuantity(
+                                item.productId,
+                                item.quantity + 1,
+                              );
+                            },
                             child: Container(
                               padding: const EdgeInsets.all(2),
                               decoration: const BoxDecoration(
@@ -391,7 +346,7 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  Widget _buildBottomSection(Color accentColor) {
+  Widget _buildBottomSection(Color accentColor, CartProvider cartProvider) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
@@ -404,22 +359,18 @@ class _CartPageState extends State<CartPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Promo Code removed
-
-          // Summary
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("Subtotal", style: TextStyle(color: Colors.grey)),
               Text(
-                "\$${subtotal.toStringAsFixed(2)}",
+                "\$${cartProvider.totalAmount.toStringAsFixed(2)}",
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
           ),
           const SizedBox(height: 8),
 
-          // Delivery fee removed
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Divider(),
@@ -432,7 +383,7 @@ class _CartPageState extends State<CartPage> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               Text(
-                "\$${totalCost.toStringAsFixed(2)}",
+                "\$${cartProvider.totalAmount.toStringAsFixed(2)}",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -444,14 +395,12 @@ class _CartPageState extends State<CartPage> {
 
           const SizedBox(height: 24),
 
-          // Checkout Button
           SizedBox(
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
               onPressed: () async {
-                if (cartItems.isNotEmpty) {
-                  // Show loading
+                if (cartProvider.cartItems.isNotEmpty) {
                   QuickAlert.show(
                     context: context,
                     type: QuickAlertType.loading,
@@ -462,26 +411,23 @@ class _CartPageState extends State<CartPage> {
                   try {
                     await PaymentService.startPayment();
 
-                    if (context.mounted) {
-                      Navigator.pop(context); // Close loading
-                      // Show info that browser is opening
+                    if (mounted) {
+                      Navigator.pop(context);
                       QuickAlert.show(
                         context: context,
                         type: QuickAlertType.info,
                         title: 'Payment Started',
-                        text:
-                            'Please complete the payment in the browser. You can verify the order status in the app later.',
                         confirmBtnText: 'Okay',
                       );
                     }
                   } catch (e) {
-                    if (context.mounted) {
-                      Navigator.pop(context); // Close loading
+                    if (mounted) {
+                      Navigator.pop(context);
                       QuickAlert.show(
                         context: context,
                         type: QuickAlertType.error,
                         title: 'Payment Error',
-                        text: e.toString().replaceAll('Exception:', '').trim(),
+                        text: e.toString(),
                       );
                     }
                   }
