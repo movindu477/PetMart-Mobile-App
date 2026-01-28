@@ -1,28 +1,17 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'favorite_cache_service.dart';
 import 'api_service.dart';
 
 class FavoriteService {
   static final String baseUrl = ApiService.baseUrl;
 
-  static Future<Map<String, String>> _headers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-
-    return {
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-      if (token != null) "Authorization": "Bearer $token",
-    };
-  }
-
   static Future<Set<int>> fetchFavorites() async {
     try {
       final response = await http.get(
         Uri.parse("$baseUrl/favorites"),
-        headers: await _headers(),
+        headers: await ApiService.authHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -56,15 +45,25 @@ class FavoriteService {
     try {
       final response = await http.post(
         Uri.parse("$baseUrl/favorites"),
-        headers: await _headers(),
+        headers: await ApiService.authHeaders(),
         body: jsonEncode({"pet_id": petId}),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          response.statusCode == 409) {
+        // 409 = Already exists
         await FavoriteCacheService.addFavorite(petId);
       } else {
-        await FavoriteCacheService.addFavorite(petId);
-        throw Exception("Failed to add favorite");
+        // even if api fails, we might want to keep it locally?
+        // But for now let's just log and throw the actual server error
+        String msg = "Failed to add favorite (${response.statusCode})";
+        try {
+          final body = jsonDecode(response.body);
+          msg = body['message'] ?? body['error'] ?? msg;
+        } catch (_) {}
+
+        throw Exception(msg);
       }
     } catch (e) {
       await FavoriteCacheService.addFavorite(petId);
@@ -76,14 +75,19 @@ class FavoriteService {
     try {
       final response = await http.delete(
         Uri.parse("$baseUrl/favorites/$petId"),
-        headers: await _headers(),
+        headers: await ApiService.authHeaders(),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 404) {
+        // 404 = Already gone
         await FavoriteCacheService.removeFavorite(petId);
       } else {
-        await FavoriteCacheService.removeFavorite(petId);
-        throw Exception("Failed to remove favorite");
+        String msg = "Failed to remove favorite (${response.statusCode})";
+        try {
+          final body = jsonDecode(response.body);
+          msg = body['message'] ?? body['error'] ?? msg;
+        } catch (_) {}
+        throw Exception(msg);
       }
     } catch (e) {
       await FavoriteCacheService.removeFavorite(petId);

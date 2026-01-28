@@ -2,35 +2,22 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+
 import 'cart_cache_service.dart';
 import 'api_service.dart';
 
 class CartService {
   static final String baseUrl = ApiService.baseUrl;
 
-  static Future<Map<String, String>> headers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-
-    final headers = <String, String>{
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-    };
-
-    if (token != null && token.isNotEmpty) {
-      headers["Authorization"] = "Bearer $token";
-    }
-
-    return headers;
-  }
-
-  static Future<void> addToCart(int petId) async {
+  static Future<void> addToCart(
+    int petId, {
+    Map<String, dynamic>? productData,
+  }) async {
     try {
       final response = await http
           .post(
             Uri.parse("$baseUrl/cart"),
-            headers: await headers(),
+            headers: await ApiService.authHeaders(),
             body: jsonEncode({"pet_id": petId}),
           )
           .timeout(
@@ -41,6 +28,14 @@ class CartService {
           );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        // If we have product data, cache it locally immediately
+        if (productData != null) {
+          try {
+            await CartCacheService.addToCart(petId, productData);
+          } catch (e) {
+            debugPrint("Failed to cache item after add: $e");
+          }
+        }
         return;
       }
 
@@ -66,7 +61,7 @@ class CartService {
     try {
       final response = await http.get(
         Uri.parse("$baseUrl/cart"),
-        headers: await headers(),
+        headers: await ApiService.authHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -87,7 +82,7 @@ class CartService {
     try {
       final res = await http.delete(
         Uri.parse("$baseUrl/cart/$petId"),
-        headers: await headers(),
+        headers: await ApiService.authHeaders(),
       );
 
       if (res.statusCode == 200) {
@@ -105,7 +100,7 @@ class CartService {
   static Future<void> updateQuantity(int petId, int quantity) async {
     await http.put(
       Uri.parse("$baseUrl/cart/$petId"),
-      headers: await headers(),
+      headers: await ApiService.authHeaders(),
       body: jsonEncode({'quantity': quantity}),
     );
   }

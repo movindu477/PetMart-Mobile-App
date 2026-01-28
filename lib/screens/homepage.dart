@@ -10,7 +10,6 @@ import '../services/location_service.dart';
 import 'package:geolocator/geolocator.dart';
 import '../widgets/location_map_section.dart';
 
-// This is the main landing page of the application where users land after the splash screen.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -28,7 +27,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    // We initialize the scroll controller here to keep track of scrolling behavior.
+    // Track scrolling to toggle app bar transparency
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
     _initLocation();
@@ -55,7 +54,7 @@ class _HomePageState extends State<HomePage> {
         _currentPosition = position;
       });
 
-      // Send to backend in background
+      // Update backend with latest location
       LocationService.sendLocationToBackend(
         position.latitude,
         position.longitude,
@@ -67,7 +66,7 @@ class _HomePageState extends State<HomePage> {
         _currentCity = "Unknown";
       });
 
-      // If permission is denied, show a helpful message
+      // Handle permission denial gracefully
       if (e.toString().contains('denied')) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -84,7 +83,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    // Always dispose the controller to free up resources.
     _scrollController.dispose();
     super.dispose();
   }
@@ -93,30 +91,13 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      // We want the app bar to sit on top of the content for a seamless look.
+      // Extend body behind app bar for transparent effect
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(
-            Icons.menu_rounded,
-            color: _isScrolled ? const Color(0xFF1565C0) : Colors.white,
-          ),
-          onPressed: () {},
-        ),
         backgroundColor: _isScrolled ? Colors.white : Colors.transparent,
         elevation: _isScrolled ? 2 : 0,
         toolbarHeight: 70,
         automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: Icon(
-              Icons.notifications_none_rounded,
-              color: _isScrolled ? const Color(0xFF1565C0) : Colors.white,
-            ),
-            onPressed: () {}, // Removed the alert as requested
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SingleChildScrollView(
         controller: _scrollController,
@@ -164,7 +145,10 @@ class _HomePageState extends State<HomePage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
-                height: 480,
+                height:
+                    MediaQuery.of(context).orientation == Orientation.landscape
+                    ? 350
+                    : 480,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(32),
@@ -299,7 +283,10 @@ class _HomePageState extends State<HomePage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
-                height: 480,
+                height:
+                    MediaQuery.of(context).orientation == Orientation.landscape
+                    ? 350
+                    : 480,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(32),
@@ -433,7 +420,9 @@ class _HomePageState extends State<HomePage> {
   // This internal widget builds the large hero image at the top.
   Widget _buildHeroSection() {
     return Container(
-      height: 700,
+      height: MediaQuery.of(context).orientation == Orientation.landscape
+          ? 400
+          : 700,
       width: double.infinity,
       decoration: const BoxDecoration(
         color: Color(0xFF1565C0),
@@ -751,8 +740,11 @@ class _HomePageState extends State<HomePage> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             padding: EdgeInsets.zero,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount:
+                  MediaQuery.of(context).orientation == Orientation.landscape
+                  ? 4
+                  : 2,
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
               childAspectRatio: 1.3, // Adjusted for more vertical space

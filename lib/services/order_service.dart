@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'cart_service.dart';
+
 import 'api_service.dart';
 
 class OrderService {
@@ -39,7 +39,7 @@ class OrderService {
       final response = await http
           .post(
             Uri.parse("$baseUrl/orders"),
-            headers: await CartService.headers(),
+            headers: await ApiService.authHeaders(),
             body: jsonEncode(orderData),
           )
           .timeout(

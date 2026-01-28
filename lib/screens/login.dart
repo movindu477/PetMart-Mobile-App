@@ -202,6 +202,32 @@ class _LoginPageState extends State<LoginPage> {
     // Determine screen size for responsiveness
     return Scaffold(
       backgroundColor: Colors.black, // Dark background behind image
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+          ),
+          onPressed: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const HomePage()),
+              );
+            }
+          },
+        ),
+        actions: const [], // Ensure no stray icons appear
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final isLandscape = constraints.maxWidth > constraints.maxHeight;
@@ -247,38 +273,12 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       // Header Text
                       Positioned(
-                        top: SafeArea(child: Container()).minimum.top + 20,
+                        top: MediaQuery.of(context).padding.top + 60,
                         left: 24,
                         right: 24,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Back button
-                            GestureDetector(
-                              onTap: () {
-                                if (Navigator.canPop(context)) {
-                                  Navigator.pop(context);
-                                } else {
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const HomePage(),
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.arrow_back,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
                             const SizedBox(height: 20),
                             AnimatedSwitcher(
                               duration: const Duration(milliseconds: 300),
@@ -435,9 +435,10 @@ class _LoginPageState extends State<LoginPage> {
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeInOut,
                               alignment: Alignment.topCenter,
-                              child: Column(
-                                children: [
-                                  if (!_isLogin) ...[
+                              child: Visibility(
+                                visible: !_isLogin,
+                                child: Column(
+                                  children: [
                                     _buildTextField(
                                       label: "Full Name",
                                       icon: Icons.person_outline_rounded,
@@ -447,7 +448,7 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                                     const SizedBox(height: 16),
                                   ],
-                                ],
+                                ),
                               ),
                             ),
 

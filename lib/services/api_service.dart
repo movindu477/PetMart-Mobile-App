@@ -13,8 +13,14 @@ class ApiService {
     return {
       "Accept": "application/json",
       "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
       if (token != null) "Authorization": "Bearer $token",
     };
+  }
+
+  static Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.containsKey('token') && prefs.getString('token') != null;
   }
 
   static Future<Map<String, dynamic>?> fetchUserProfile() async {

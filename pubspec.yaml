@@ -19,6 +19,7 @@ dependencies:
   geolocator: ^10.1.0
   geocoding: ^3.0.0
   google_maps_flutter: ^2.5.0
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -37,6 +38,7 @@ flutter:
     - images/section3.jpg
     - images/section4.jpg
     - images/shop.jpg
+    - images/shop.png
     - images/shop1.jpg
     - images/shopori.jpg
     - images/back1.jpg

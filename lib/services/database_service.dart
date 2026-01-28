@@ -3,8 +3,8 @@ import 'package:path/path.dart';
 
 class DatabaseService {
   static Database? _database;
-  static const String _dbName = 'petmart.db';
-  static const int _dbVersion = 1;
+  static const String _dbName = 'petmart_v2.db';
+  static const int _dbVersion = 2;
 
   static const String _favoritesTable = 'favorites';
   static const String _cartTable = 'cart';
@@ -19,7 +19,12 @@ class DatabaseService {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, _dbName);
 
-    return await openDatabase(path, version: _dbVersion, onCreate: _onCreate);
+    return await openDatabase(
+      path,
+      version: _dbVersion,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   static Future<void> _onCreate(Database db, int version) async {
@@ -42,6 +47,28 @@ class DatabaseService {
         UNIQUE(pet_id)
       )
     ''');
+  }
+
+  static Future<void> _onUpgrade(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      // Version 1 might have missed the cart table or had a malformed favorites table.
+      // We will try to create the cart table if it doesn't exist.
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS $_cartTable (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          pet_id INTEGER NOT NULL,
+          quantity INTEGER DEFAULT 1,
+          product_data TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          UNIQUE(pet_id)
+        )
+      ''');
+    }
   }
 
   static Future<void> clearAll() async {

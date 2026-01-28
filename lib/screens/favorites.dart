@@ -5,7 +5,8 @@ import '../models/product.dart';
 import '../services/product_service.dart';
 import '../services/favorite_service.dart';
 import '../services/cart_service.dart';
-import '../services/local_favorite_service.dart';
+import '../services/api_service.dart';
+
 import 'package:quickalert/quickalert.dart';
 
 class FavoritesPage extends StatefulWidget {
@@ -30,11 +31,12 @@ class _FavoritesPageState extends State<FavoritesPage> {
 
   Future<void> _loadCachedData() async {
     try {
-      final localFavs = await LocalFavoriteService.getAll();
+      final localFavs = await FavoriteService.getCachedFavorites();
       setState(() {
         _favoriteIds = localFavs;
       });
-      _loadFavoriteProducts();
+      if (localFavs.isNotEmpty)
+        _loadFavoriteProducts(); // Only load if we have cached favs
     } catch (e) {
       debugPrint("LOCAL FAVORITES LOAD ERROR: $e");
     }
@@ -92,11 +94,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
       }
     });
 
-    if (isFav) {
-      await LocalFavoriteService.remove(petId);
-    } else {
-      await LocalFavoriteService.add(petId);
-    }
+    // LocalFavoriteService calls removed - handled by FavoriteService internally now
 
     try {
       if (isFav) {
@@ -112,8 +110,29 @@ class _FavoritesPageState extends State<FavoritesPage> {
   Future<void> _addToCart(Product product) async {
     if (!mounted) return;
 
+    final isLoggedIn = await ApiService.isLoggedIn();
+    if (!isLoggedIn) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.warning,
+        title: 'Login Required',
+        text: 'Please login to add items to cart.',
+        confirmBtnText: 'OK',
+      );
+      return;
+    }
+
     try {
-      await CartService.addToCart(product.id);
+      await CartService.addToCart(
+        product.id,
+        productData: {
+          'product_name': product.productName,
+          'price': product.price,
+          'image_url': product.fullImageUrl,
+          'pet_type': product.petType,
+          'accessories_type': product.accessoriesType,
+        },
+      );
 
       if (!mounted) return;
 
@@ -394,20 +413,26 @@ class _FavoritesPageState extends State<FavoritesPage> {
                   ),
                 ),
               )
-            : GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.75,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                ),
-                itemCount: _products.length,
-                itemBuilder: (context, index) {
-                  if (index >= _products.length) {
-                    return const SizedBox.shrink();
-                  }
-                  return _buildProductCard(_products[index]);
+            : OrientationBuilder(
+                builder: (context, orientation) {
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(16),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: orientation == Orientation.landscape
+                          ? 4
+                          : 2,
+                      childAspectRatio: 0.75,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: _products.length,
+                    itemBuilder: (context, index) {
+                      if (index >= _products.length) {
+                        return const SizedBox.shrink();
+                      }
+                      return _buildProductCard(_products[index]);
+                    },
+                  );
                 },
               ),
       ),
