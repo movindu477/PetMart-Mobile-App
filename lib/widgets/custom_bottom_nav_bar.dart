@@ -27,7 +27,7 @@ class CustomBottomNavBar extends StatelessWidget {
           borderRadius: BorderRadius.circular(50),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
+              color: Colors.black.withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -103,7 +103,7 @@ class CustomBottomNavBar extends StatelessWidget {
       ),
       child: Icon(
         icon,
-        color: isSelected ? Colors.black : Colors.white.withValues(alpha: 0.65),
+        color: isSelected ? Colors.black : Colors.white.withOpacity(0.65),
         size: 26,
       ),
     );

@@ -69,5 +69,30 @@ class CartItem {
     );
   }
 
-  // Factory from API response might differ, we can add that later if needed
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    // Laravel often nests the actual product data inside a 'pet' or 'product' key
+    final dynamic petData = json['pet'] ?? json['product'];
+    final Map<String, dynamic> source = (petData is Map<String, dynamic>)
+        ? petData
+        : json;
+
+    return CartItem(
+      productId: source['id'] ?? json['pet_id'] ?? 0,
+      productName: source['product_name'] ?? source['name'] ?? '',
+      price: (source['price'] is int)
+          ? (source['price'] as int).toDouble()
+          : (source['price'] is String)
+          ? double.tryParse(source['price']) ?? 0.0
+          : (source['price'] as num?)?.toDouble() ?? 0.0,
+      imageUrl:
+          source['image_url'] ??
+          source['product_image'] ??
+          source['imageUrl'] ??
+          '',
+      quantity: json['quantity'] ?? 1,
+      petType: source['pet_type'] ?? source['petType'] ?? '',
+      accessoriesType:
+          source['accessories_type'] ?? source['accessoriesType'] ?? '',
+    );
+  }
 }

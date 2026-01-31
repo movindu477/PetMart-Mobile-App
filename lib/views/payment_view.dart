@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:quickalert/quickalert.dart';
+import 'package:provider/provider.dart';
 import '../services/order_service.dart';
-import '../services/cart_cache_service.dart';
-import '../services/cart_service.dart';
+import '../providers/cart_provider.dart';
+import '../services/stripe_service.dart';
+import '../services/api_service.dart';
 
 class PaymentPage extends StatefulWidget {
   final List<Map<String, dynamic>> cartItems;
@@ -15,20 +17,11 @@ class PaymentPage extends StatefulWidget {
 }
 
 class _PaymentPageState extends State<PaymentPage> {
-  // Order Fields
+  // Form controllers
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
+  final TextEditingController cityController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
-  final TextEditingController cityZipController = TextEditingController();
-
-  // Card Fields
-  final TextEditingController _cardNumberController = TextEditingController();
-  final TextEditingController _expiryDateController = TextEditingController();
-  final TextEditingController _cvvController = TextEditingController();
-
-  // State
-  bool _saveCard = true;
-  bool _isCardPayment = true; // Toggle for Cash fallback
 
   double get totalAmount {
     return widget.cartItems.fold(0.0, (sum, item) {
@@ -46,67 +39,66 @@ class _PaymentPageState extends State<PaymentPage> {
   void dispose() {
     fullNameController.dispose();
     addressController.dispose();
+    cityController.dispose();
     phoneController.dispose();
-    cityZipController.dispose();
-    _cardNumberController.dispose();
-    _expiryDateController.dispose();
-    _cvvController.dispose();
     super.dispose();
   }
 
   Future<void> placeOrder() async {
-    // Basic Validation
+    // Check if details are filled
     if (fullNameController.text.trim().isEmpty ||
         addressController.text.trim().isEmpty ||
+        cityController.text.trim().isEmpty ||
         phoneController.text.trim().isEmpty) {
-      _showError('Please fill in all shipping details.');
+      _showError('Please fill in all details.');
       return;
     }
 
-    if (_isCardPayment) {
-      if (_cardNumberController.text.length < 16 ||
-          _expiryDateController.text.isEmpty ||
-          _cvvController.text.length < 3) {
-        _showError('Please check your card details.');
+    // Process the stripe card payment
+    String? paymentIntentId;
+    try {
+      paymentIntentId = await StripeService.confirmPaymentWithCardField(
+        totalAmount,
+      );
+      if (paymentIntentId == null) {
         return;
       }
+    } catch (e) {
+      _showError('Stripe Error: $e');
+      return;
     }
 
     if (!mounted) return;
 
-    // Show loading or just proceed
-    // (Ideally show a loader, but QuickAlert might handle blocking interaction? Not really, let's just await)
-
     try {
-      await OrderService.placeOrder(
+      final success = await OrderService.checkout(
         fullName: fullNameController.text.trim(),
         address: addressController.text.trim(),
+        city: cityController.text.trim(),
         phone: phoneController.text.trim(),
-        cityZip: cityZipController.text.trim().isNotEmpty
-            ? cityZipController.text.trim()
-            : null,
-        paymentMethod: _isCardPayment ? 'card' : 'cash',
-        cartItems: widget.cartItems,
-        totalAmount: totalAmount,
+        paymentMethod: 'card',
+        paymentIntentId: paymentIntentId,
       );
 
-      // Clear logic
-      _clearCartAndCache();
+      if (success) {
+        _clearCartAndCache();
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      // Show success
-      await QuickAlert.show(
-        context: context,
-        type: QuickAlertType.success,
-        title: 'Success!',
-        text:
-            'Your order of \$${totalAmount.toStringAsFixed(2)} has been placed.',
-        autoCloseDuration: const Duration(seconds: 2),
-      );
+        await QuickAlert.show(
+          context: context,
+          type: QuickAlertType.success,
+          title: 'Success!',
+          text:
+              'Your order of \$${totalAmount.toStringAsFixed(2)} has been placed.',
+          autoCloseDuration: const Duration(seconds: 2),
+        );
 
-      if (!mounted) return;
-      Navigator.pop(context, true);
+        if (!mounted) return;
+        Navigator.pop(context, true);
+      } else {
+        _showError('Failed to place order. Please try again.');
+      }
     } catch (e) {
       _showError(e.toString());
     }
@@ -124,33 +116,20 @@ class _PaymentPageState extends State<PaymentPage> {
 
   Future<void> _clearCartAndCache() async {
     try {
-      // Clear from API
-      for (final item in widget.cartItems) {
-        final petId = item['pet_id'] is int
-            ? item['pet_id'] as int
-            : int.tryParse(item['pet_id'].toString()) ?? 0;
-        if (petId > 0) {
-          // Fire and forget or await
-          await CartService.removeFromCart(petId);
-        }
-      }
-      // Clear Local
-      await CartCacheService.clearCart();
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      await cartProvider.fetchCart();
     } catch (_) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    // Design Colors
-    const Color primaryBlue = Color(0xFF5D5FEF); // Purple/Blue tone from image
-    const Color cardDarkBlue = Color(0xFF0A2647);
-    const Color cardLightBlue = Color(0xFF144272);
+    const Color primaryBlack = Colors.black;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'Add New Card',
+          'Payment Details',
           style: TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
@@ -175,156 +154,59 @@ class _PaymentPageState extends State<PaymentPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Order overview
+              _buildSectionTitle("Order Summary"),
               const SizedBox(height: 12),
-
-              // 1. Payment Method Toggle
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    _buildPaymentMethodTab("Credit Card", true),
-                    _buildPaymentMethodTab("Cash on Delivery", false),
-                  ],
-                ),
-              ),
+              _buildSummarySection(),
               const SizedBox(height: 24),
 
-              if (_isCardPayment) ...[
-                // 2. Visual Credit Card
-                _buildCreditCard(cardDarkBlue, cardLightBlue),
-                const SizedBox(height: 32),
-
-                // 3. Card Form
-                _buildLabel('Card Number'),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _cardNumberController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 19,
-                  onChanged: (val) => setState(() {}),
-                  decoration: _inputDecoration(
-                    hint: '1234 5678 9000 0000',
-                    suffixIcon: Icon(
-                      Icons.qr_code_scanner,
-                      color: Colors.grey[400],
-                    ),
-                  ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    _CardNumberFormatter(),
-                  ],
+              // Card details section
+              _buildSectionTitle("Payment Method"),
+              const SizedBox(height: 12),
+              _buildLabel('Card Information'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-                const SizedBox(height: 16),
-              ],
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: CardField(
+                  style: TextStyle(fontSize: 16, color: Colors.black),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildSecurityBadge(),
+              const SizedBox(height: 32),
 
               _buildLabel('Account Holder Name'),
               const SizedBox(height: 8),
               TextField(
                 controller: fullNameController,
                 onChanged: (val) => setState(() {}),
-                decoration: _inputDecoration(hint: 'Wahib Khan Lohani'),
+                decoration: _inputDecoration(hint: 'Enter your name'),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
-              if (_isCardPayment) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel('Expiry Date'),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _expiryDateController,
-                            keyboardType: TextInputType.datetime,
-                            onChanged: (val) => setState(() {}),
-                            maxLength: 5,
-                            decoration: _inputDecoration(
-                              hint: '12/28',
-                              suffixIcon: const Icon(
-                                Icons.keyboard_arrow_down,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel('CVV'),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _cvvController,
-                            keyboardType: TextInputType.number,
-                            maxLength: 3,
-                            decoration: _inputDecoration(hint: '224'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(() => _saveCard = !_saveCard),
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _saveCard ? primaryBlue : Colors.transparent,
-                          border: Border.all(
-                            color: _saveCard ? primaryBlue : Colors.grey[400]!,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.check,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Save Card Information',
-                      style: TextStyle(
-                        color: Colors.grey[800],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-
-              const SizedBox(height: 32),
-
-              // 4. Shipping Details (Collapsible or just below)
-              Text(
-                "Shipping Details",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 16),
+              // Shipping info
+              _buildSectionTitle("Shipping Details"),
+              const SizedBox(height: 12),
               _buildLabel('Address'),
               const SizedBox(height: 8),
               TextField(
                 controller: addressController,
-                decoration: _inputDecoration(hint: '123 Main St, City'),
+                decoration: _inputDecoration(hint: '123 Main St'),
+              ),
+              const SizedBox(height: 16),
+              _buildLabel('City'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: cityController,
+                decoration: _inputDecoration(hint: 'Enter city'),
               ),
               const SizedBox(height: 16),
               _buildLabel('Phone Number'),
@@ -337,21 +219,21 @@ class _PaymentPageState extends State<PaymentPage> {
 
               const SizedBox(height: 40),
 
-              // 5. Pay Button
+              // Pay button
               SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
                   onPressed: placeOrder,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBlue,
+                    backgroundColor: primaryBlack,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   child: Text(
-                    "Save & Pay \$${totalAmount.toStringAsFixed(2)}",
+                    "Pay \$${totalAmount.toStringAsFixed(2)}",
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -368,161 +250,129 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  Widget _buildCreditCard(Color startColor, Color endColor) {
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+    );
+  }
+
+  Widget _buildSummarySection() {
     return Container(
-      width: double.infinity,
-      height: 200,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [startColor, endColor],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: endColor.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          ...widget.cartItems.map((item) {
+            final double price = item["price"] is double
+                ? item["price"]
+                : double.tryParse(item["price"].toString()) ?? 0.0;
+            final int quantity = item["quantity"] is int
+                ? item["quantity"]
+                : int.tryParse(item["quantity"].toString()) ?? 1;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      item["image_url"] ?? '',
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => Container(
+                        width: 50,
+                        height: 50,
+                        color: Colors.grey[300],
+                        child: Icon(Icons.pets, color: Colors.grey[500]),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item["product_name"] ?? "Product",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          "Quantity: $quantity",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    "\$${(price * quantity).toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const Divider(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                "Debit",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                "Total Amount",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              Row(
-                children: [
-                  const Icon(Icons.circle, size: 8, color: Colors.white),
-                  const SizedBox(width: 4),
-                  const Text(
-                    "ESCObank",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
+              Text(
+                "\$${totalAmount.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: Colors.black,
+                ),
               ),
             ],
           ),
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: Colors.yellow[700],
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(
-                  Icons.grid_3x3,
-                  color: Colors.black26,
-                  size: 20,
-                ), // Simulated chip
-              ),
-              const Spacer(),
-              const Icon(Icons.wifi, color: Colors.white, size: 28),
-            ],
-          ),
-          Text(
-            _cardNumberController.text.isEmpty
-                ? "1234 5678 9000 0000"
-                : _cardNumberController.text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontFamily: 'Courier',
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecurityBadge() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.green[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green[100]!),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lock_outline, color: Colors.green[700], size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              "Your payment is secure and encrypted by Stripe.",
+              style: TextStyle(color: Colors.green[800], fontSize: 12),
             ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Card Holder",
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 10,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    fullNameController.text.isEmpty
-                        ? "Wahib Khan Lohani"
-                        : fullNameController.text.toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Expiry Date",
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 10,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _expiryDateController.text.isEmpty
-                        ? "12/28"
-                        : _expiryDateController.text,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              // Mastercard Logo Simulation
-              SizedBox(
-                width: 40,
-                height: 24,
-                child: Stack(
-                  children: [
-                    Positioned(
-                      left: 0,
-                      child: CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Colors.red.withValues(alpha: 0.8),
-                      ),
-                    ),
-                    Positioned(
-                      right: 0,
-                      child: CircleAvatar(
-                        radius: 12,
-                        backgroundColor: Colors.orange.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -553,70 +403,10 @@ class _PaymentPageState extends State<PaymentPage> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF5D5FEF), width: 1.5),
+        borderSide: const BorderSide(color: Colors.black, width: 1.5),
       ),
       counterText: '',
       suffixIcon: suffixIcon,
-    );
-  }
-
-  Widget _buildPaymentMethodTab(String title, bool isCard) {
-    final isSelected = _isCardPayment == isCard;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _isCardPayment = isCard),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : [],
-          ),
-          child: Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: isSelected ? Colors.black : Colors.grey[600],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CardNumberFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    var text = newValue.text;
-    if (newValue.selection.baseOffset == 0) {
-      return newValue;
-    }
-    var buffer = StringBuffer();
-    for (int i = 0; i < text.length; i++) {
-      buffer.write(text[i]);
-      var nonZeroIndex = i + 1;
-      if (nonZeroIndex % 4 == 0 && nonZeroIndex != text.length) {
-        buffer.write(' ');
-      }
-    }
-    var string = buffer.toString();
-    return newValue.copyWith(
-      text: string,
-      selection: TextSelection.collapsed(offset: string.length),
     );
   }
 }

@@ -1,70 +1,45 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import 'api_service.dart';
 
 class OrderService {
-  static final String baseUrl = ApiService.baseUrl;
+  static final String _baseUrl = ApiService.baseUrl;
 
-  static Future<void> placeOrder({
+  static Future<bool> checkout({
     required String fullName,
     required String address,
+    required String city,
     required String phone,
-    String? cityZip,
     required String paymentMethod,
-    required List<Map<String, dynamic>> cartItems,
-    required double totalAmount,
+    String? paymentIntentId,
   }) async {
     try {
-      // Prepare order items
-      final orderItems = cartItems.map((item) {
-        return {
-          'pet_id': item['pet_id'] ?? item['id'],
-          'quantity': item['quantity'] ?? 1,
-          'price': item['price'] ?? 0.0,
-        };
-      }).toList();
-
-      // Prepare order data
-      final orderData = {
-        'full_name': fullName,
-        'address': address,
-        'phone': phone,
-        if (cityZip != null && cityZip.isNotEmpty) 'city_zip': cityZip,
-        'payment_method': paymentMethod,
-        'items': orderItems,
-        'total_amount': totalAmount,
-      };
-
       final response = await http
           .post(
-            Uri.parse("$baseUrl/orders"),
-            headers: await ApiService.authHeaders(),
-            body: jsonEncode(orderData),
+            Uri.parse("$_baseUrl/checkout"),
+            headers: await ApiService.getHeaders(),
+            body: jsonEncode({
+              "full_name": fullName,
+              "shipping_address": address,
+              "shipping_city": city,
+              "shipping_phone": phone,
+              "payment_method": paymentMethod,
+              if (paymentIntentId != null) "payment_intent_id": paymentIntentId,
+            }),
           )
-          .timeout(
-            const Duration(seconds: 15),
-            onTimeout: () {
-              throw Exception("Request timeout. Please check your connection.");
-            },
-          );
+          .timeout(const Duration(seconds: 15));
 
-      if (response.statusCode != 200 && response.statusCode != 201) {
-        String errorMessage = "Failed to place order";
-        try {
-          final errorBody = jsonDecode(response.body);
-          errorMessage =
-              errorBody['message'] ?? errorBody['error'] ?? errorMessage;
-        } catch (_) {
-          errorMessage = "Server error: ${response.statusCode}";
-        }
-        throw Exception(errorMessage);
+      debugPrint("--- CHECKOUT STATUS: ${response.statusCode}");
+      debugPrint("--- CHECKOUT RESPONSE: ${response.body}");
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
       }
+      return false;
     } catch (e) {
-      if (e is Exception) {
-        rethrow;
-      }
-      throw Exception("Network error: $e");
+      debugPrint("CHECKOUT ERROR: $e");
+      return false;
     }
   }
 }

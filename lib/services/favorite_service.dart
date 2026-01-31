@@ -1,101 +1,109 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
-import 'favorite_cache_service.dart';
 import 'api_service.dart';
 
 class FavoriteService {
-  static final String baseUrl = ApiService.baseUrl;
+  static final String _baseUrl = ApiService.baseUrl;
 
   static Future<Set<int>> fetchFavorites() async {
     try {
       final response = await http.get(
-        Uri.parse("$baseUrl/favorites"),
-        headers: await ApiService.authHeaders(),
+        Uri.parse("$_baseUrl/favorites"),
+        headers: await ApiService.getHeaders(),
       );
 
       if (response.statusCode == 200) {
-        final decoded = jsonDecode(response.body);
-        final List list = decoded['data'] ?? decoded;
+        debugPrint("FETCH FAVORITES SUCCESS: ${response.body}");
+        if (response.body.isEmpty) return {};
 
-        final favoriteIds = list
-            .map<int>((e) {
-              if (e is Map && e.containsKey('pet_id')) {
-                final petId = e['pet_id'];
-                return petId is int
-                    ? petId
-                    : int.tryParse(petId.toString()) ?? -1;
-              }
-              return e is int ? e : int.tryParse(e.toString()) ?? -1;
-            })
-            .where((id) => id != -1)
-            .toSet();
+        final dynamic body = jsonDecode(response.body);
+        List list = [];
 
-        await FavoriteCacheService.cacheFavorites(favoriteIds);
-        return favoriteIds;
+        if (body is List) {
+          list = body;
+        } else if (body is Map) {
+          if (body['data'] is List) {
+            list = body['data'];
+          } else if (body['favorites'] is List) {
+            list = body['favorites'];
+          } else if (body['items'] is List) {
+            list = body['items'];
+          } else if (body['data'] is Map) {
+            final data = body['data'];
+            if (data['favorites'] is List)
+              list = data['favorites'];
+            else if (data['items'] is List)
+              list = data['items'];
+          }
+        }
+
+        return list.map<int>((e) {
+          if (e is int) return e;
+          if (e is String) return int.tryParse(e) ?? 0;
+          if (e is Map) {
+            final petId = e['pet_id'] ?? e['id'];
+            if (petId is int) return petId;
+            return int.tryParse(petId.toString()) ?? 0;
+          }
+          return 0;
+        }).toSet();
       } else {
-        return await FavoriteCacheService.getCachedFavorites();
+        debugPrint(
+          "FETCH FAVORITES FAILED: ${response.statusCode} - ${response.body}",
+        );
       }
+      return {};
     } catch (e) {
-      return await FavoriteCacheService.getCachedFavorites();
+      debugPrint("FETCH FAVORITES ERROR: $e");
+      return {};
     }
   }
 
-  static Future<void> addFavorite(int petId) async {
+  static Future<bool> toggleFavorite(int petId) async {
     try {
+      debugPrint("--- FAVORITE SERVICE: Toggling $petId");
       final response = await http.post(
-        Uri.parse("$baseUrl/favorites"),
-        headers: await ApiService.authHeaders(),
+        Uri.parse("$_baseUrl/favorites/toggle"),
+        headers: await ApiService.getHeaders(),
         body: jsonEncode({"pet_id": petId}),
       );
 
-      if (response.statusCode == 200 ||
-          response.statusCode == 201 ||
-          response.statusCode == 409) {
-        // 409 = Already exists
-        await FavoriteCacheService.addFavorite(petId);
-      } else {
-        // even if api fails, we might want to keep it locally?
-        // But for now let's just log and throw the actual server error
-        String msg = "Failed to add favorite (${response.statusCode})";
-        try {
-          final body = jsonDecode(response.body);
-          msg = body['message'] ?? body['error'] ?? msg;
-        } catch (_) {}
-
-        throw Exception(msg);
-      }
-    } catch (e) {
-      await FavoriteCacheService.addFavorite(petId);
-      rethrow;
-    }
-  }
-
-  static Future<void> removeFavorite(int petId) async {
-    try {
-      final response = await http.delete(
-        Uri.parse("$baseUrl/favorites/$petId"),
-        headers: await ApiService.authHeaders(),
+      debugPrint(
+        "--- FAVORITE SERVICE: Status: ${response.statusCode}, Body: ${response.body}",
       );
 
-      if (response.statusCode == 200 || response.statusCode == 404) {
-        // 404 = Already gone
-        await FavoriteCacheService.removeFavorite(petId);
-      } else {
-        String msg = "Failed to remove favorite (${response.statusCode})";
-        try {
-          final body = jsonDecode(response.body);
-          msg = body['message'] ?? body['error'] ?? msg;
-        } catch (_) {}
-        throw Exception(msg);
-      }
-    } catch (e) {
-      await FavoriteCacheService.removeFavorite(petId);
-      rethrow;
-    }
-  }
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final jsonResponse = jsonDecode(response.body);
+        final dynamic data = jsonResponse['data'] ?? jsonResponse;
 
-  static Future<Set<int>> getCachedFavorites() async {
-    return await FavoriteCacheService.getCachedFavorites();
+        if (data is Map) {
+          // Robust parsing of favorited state
+          final attached = data['attached'];
+          if (attached is List) return attached.isNotEmpty;
+          if (attached is bool) return attached;
+
+          final status = data['status']?.toString().toLowerCase();
+          if (status == 'added' || status == 'attached' || status == 'success')
+            return true;
+          if (status == 'removed' || status == 'detached') return false;
+
+          final message = data['message']?.toString().toLowerCase() ?? '';
+          if (message.contains('added') ||
+              message.contains('successful') ||
+              message.contains('attached'))
+            return true;
+          if (message.contains('removed') || message.contains('detached'))
+            return false;
+        }
+
+        // If we got success but can't find 'attached' key, it might just be the new state
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("TOGGLE FAVORITE ERROR: $e");
+      return false;
+    }
   }
 }

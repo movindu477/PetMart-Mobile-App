@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:quickalert/quickalert.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'shop_view.dart';
-import '../services/payment_service.dart';
+import 'payment_view.dart' as payment_view;
 import '../providers/cart_provider.dart';
 import '../models/cart_item.dart';
 
@@ -195,7 +194,7 @@ class _CartPageState extends State<CartPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -401,35 +400,21 @@ class _CartPageState extends State<CartPage> {
             child: ElevatedButton(
               onPressed: () async {
                 if (cartProvider.cartItems.isNotEmpty) {
-                  QuickAlert.show(
-                    context: context,
-                    type: QuickAlertType.loading,
-                    title: 'Initiating Payment',
-                    text: 'Connecting to Stripe...',
+                  final List<Map<String, dynamic>> items = cartProvider
+                      .cartItems
+                      .map((e) => e.toMap())
+                      .toList();
+
+                  final success = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          payment_view.PaymentPage(cartItems: items),
+                    ),
                   );
 
-                  try {
-                    await PaymentService.startPayment();
-
-                    if (mounted) {
-                      Navigator.pop(context);
-                      QuickAlert.show(
-                        context: context,
-                        type: QuickAlertType.info,
-                        title: 'Payment Started',
-                        confirmBtnText: 'Okay',
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      Navigator.pop(context);
-                      QuickAlert.show(
-                        context: context,
-                        type: QuickAlertType.error,
-                        title: 'Payment Error',
-                        text: e.toString(),
-                      );
-                    }
+                  if (success == true) {
+                    // Success is handled by PaymentPage showing alert and popping
                   }
                 }
               },

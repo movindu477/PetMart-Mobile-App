@@ -1,144 +1,92 @@
-import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
-import 'cart_cache_service.dart';
 import 'api_service.dart';
 
 class CartService {
-  static final String baseUrl = ApiService.baseUrl;
+  static final String _baseUrl = ApiService.baseUrl;
 
-  static Future<void> addToCart(
-    int petId, {
-    Map<String, dynamic>? productData,
-  }) async {
+  static Future<void> addToCart(int petId, {int quantity = 1}) async {
     try {
-      final response = await http
-          .post(
-            Uri.parse("$baseUrl/cart"),
-            headers: await ApiService.authHeaders(),
-            body: jsonEncode({"pet_id": petId}),
-          )
-          .timeout(
-            const Duration(seconds: 10),
-            onTimeout: () {
-              throw Exception("Request timeout. Please check your connection.");
-            },
-          );
+      final headers = await ApiService.getHeaders();
+      final body = jsonEncode({"pet_id": petId, "quantity": quantity});
+      debugPrint(
+        "--- CART SERVICE: Adding to cart. URL: $_baseUrl/cart/add, Body: $body",
+      );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        // If we have product data, cache it locally immediately
-        if (productData != null) {
-          try {
-            await CartCacheService.addToCart(petId, productData);
-          } catch (e) {
-            debugPrint("Failed to cache item after add: $e");
-          }
-        }
-        return;
+      final response = await http.post(
+        Uri.parse("$_baseUrl/cart/add"),
+        headers: headers,
+        body: body,
+      );
+
+      debugPrint(
+        "--- CART SERVICE: Add to cart Status: ${response.statusCode}, Body: ${response.body}",
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception("Failed to add to cart: ${response.statusCode}");
       }
-
-      String errorMessage = "Failed to add to cart";
-      try {
-        final errorBody = jsonDecode(response.body);
-        errorMessage =
-            errorBody['message'] ?? errorBody['error'] ?? errorMessage;
-      } catch (_) {
-        errorMessage = "Server error: ${response.statusCode}";
-      }
-
-      throw Exception(errorMessage);
     } catch (e) {
-      if (e is Exception) {
-        rethrow;
-      }
-      throw Exception("Unexpected error: $e");
+      debugPrint("ADD TO CART ERROR: $e");
+      rethrow;
     }
   }
 
   static Future<List<dynamic>> fetchCart() async {
     try {
       final response = await http.get(
-        Uri.parse("$baseUrl/cart"),
-        headers: await ApiService.authHeaders(),
+        Uri.parse("$_baseUrl/cart"),
+        headers: await ApiService.getHeaders(),
       );
 
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        final List<dynamic> cartItems = body['data'] ?? [];
+        debugPrint("FETCH CART SUCCESS (Status 200): ${response.body}");
+        if (response.body.isEmpty) return [];
 
-        await CartCacheService.cacheCart(cartItems);
-        return cartItems;
+        final dynamic body = jsonDecode(response.body);
+
+        // Try to find the list in common Laravel wrapper keys
+        if (body is List) return body;
+        if (body is Map) {
+          if (body['data'] is List) return body['data'];
+          if (body['items'] is List) return body['items'];
+          if (body['cart'] is List) return body['cart'];
+
+          // Check inside data wrapper
+          final dynamic data = body['data'];
+          if (data is Map) {
+            if (data['items'] is List) return data['items'];
+            if (data['cart'] is List) return data['cart'];
+          }
+        }
+        return [];
       } else {
-        return await CartCacheService.getCachedCart();
+        debugPrint(
+          "FETCH CART FAILED: ${response.statusCode} - ${response.body}",
+        );
       }
+      return [];
     } catch (e) {
-      return await CartCacheService.getCachedCart();
+      debugPrint("FETCH CART ERROR: $e");
+      return [];
     }
   }
 
   static Future<void> removeFromCart(int petId) async {
     try {
-      final res = await http.delete(
-        Uri.parse("$baseUrl/cart/$petId"),
-        headers: await ApiService.authHeaders(),
+      final response = await http.post(
+        Uri.parse("$_baseUrl/cart/remove"),
+        headers: await ApiService.getHeaders(),
+        body: jsonEncode({"pet_id": petId}),
       );
 
-      if (res.statusCode == 200) {
-        await CartCacheService.removeFromCart(petId);
-      } else {
-        await CartCacheService.removeFromCart(petId);
+      if (response.statusCode != 200) {
         throw Exception("Failed to remove from cart");
       }
     } catch (e) {
-      await CartCacheService.removeFromCart(petId);
+      debugPrint("REMOVE FROM CART ERROR: $e");
       rethrow;
-    }
-  }
-
-  static Future<void> updateQuantity(int petId, int quantity) async {
-    await http.put(
-      Uri.parse("$baseUrl/cart/$petId"),
-      headers: await ApiService.authHeaders(),
-      body: jsonEncode({'quantity': quantity}),
-    );
-  }
-
-  static Future<List<Map<String, dynamic>>> getCachedCart() async {
-    return await CartCacheService.getCachedCart();
-  }
-
-  static Future<void> syncLocalCartToApi() async {
-    try {
-      final localCart = await CartCacheService.getCachedCart();
-
-      for (final item in localCart) {
-        final petId = item['pet_id'] is int
-            ? item['pet_id'] as int
-            : int.tryParse(item['pet_id'].toString()) ?? 0;
-
-        if (petId == 0) continue;
-
-        try {
-          // Add item to cart on API
-          await addToCart(petId);
-
-          // Update quantity if needed
-          final quantity = item['quantity'] is int
-              ? item['quantity'] as int
-              : int.tryParse(item['quantity'].toString()) ?? 1;
-
-          if (quantity > 1) {
-            await updateQuantity(petId, quantity);
-          }
-        } catch (e) {
-          // Continue with next item if one fails
-          debugPrint("Failed to sync item $petId: $e");
-        }
-      }
-    } catch (e) {
-      debugPrint("Failed to sync local cart to API: $e");
     }
   }
 }

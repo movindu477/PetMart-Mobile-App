@@ -6,9 +6,9 @@ import 'package:quickalert/quickalert.dart';
 import 'product_detail_view.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
-import '../services/favorite_service.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/favorite_provider.dart';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
@@ -19,42 +19,36 @@ class FavoritesPage extends StatefulWidget {
 
 class _FavoritesPageState extends State<FavoritesPage> {
   List<Product> _products = [];
-  Set<int> _favoriteIds = {};
   bool _isLoading = true;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadCachedData();
-    _loadAllData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
-  Future<void> _loadCachedData() async {
-    try {
-      final localFavs = await FavoriteService.getCachedFavorites();
-      setState(() {
-        _favoriteIds = localFavs;
-      });
-      if (localFavs.isNotEmpty) _loadFavoriteProducts();
-    } catch (e) {
-      debugPrint("LOCAL FAVORITES LOAD ERROR: $e");
-    }
-  }
-
-  Future<void> _loadAllData() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final favorites = await FavoriteService.fetchFavorites();
-      setState(() {
-        _favoriteIds = favorites;
-      });
+      final favProvider = Provider.of<FavoriteProvider>(context, listen: false);
+      await favProvider.fetchFavorites();
 
-      await _loadFavoriteProducts();
+      final allProducts = await ProductService.fetchProducts();
+      final favoriteProducts = allProducts
+          .where((product) => favProvider.isFavorite(product.id))
+          .toList();
+
+      setState(() {
+        _products = favoriteProducts;
+        _isLoading = false;
+      });
     } catch (e) {
       debugPrint("FAVORITES LOAD ERROR: $e");
       setState(() {
@@ -64,39 +58,16 @@ class _FavoritesPageState extends State<FavoritesPage> {
     }
   }
 
-  Future<void> _loadFavoriteProducts() async {
-    try {
-      // Logic could be improved by having a getProductsByIds endpoint or caching products in ProductProvider
-      // For now, fetching all and filtering is what was there.
-      final allProducts = await ProductService.fetchProducts();
-      final favoriteProducts = allProducts
-          .where((product) => _favoriteIds.contains(product.id))
-          .toList();
-
-      setState(() {
-        _products = favoriteProducts;
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint("PRODUCTS LOAD ERROR: $e");
-      setState(() {
-        _isLoading = false;
-        _errorMessage = e.toString();
-      });
-    }
-  }
-
   Future<void> _toggleFavorite(int petId) async {
-    // Only remove support here since it's favorites page
-    setState(() {
-      _favoriteIds.remove(petId);
-      _products.removeWhere((p) => p.id == petId);
-    });
-
     try {
-      await FavoriteService.removeFavorite(petId);
+      final favProvider = Provider.of<FavoriteProvider>(context, listen: false);
+      await favProvider.toggleFavorite(petId);
+
+      setState(() {
+        _products.removeWhere((p) => p.id == petId);
+      });
     } catch (e) {
-      debugPrint("Offline mode – saved locally");
+      debugPrint("TOGGLE FAVORITE ERROR: $e");
     }
   }
 
@@ -175,7 +146,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
                     const SizedBox(height: 16),
                     const Text("Error loading favorites"),
                     TextButton(
-                      onPressed: _loadAllData,
+                      onPressed: _loadData,
                       child: const Text("Retry"),
                     ),
                   ],
@@ -224,7 +195,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+        side: BorderSide(color: Colors.grey.withOpacity(0.2)),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

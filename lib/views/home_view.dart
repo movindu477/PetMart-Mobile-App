@@ -158,12 +158,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1565C0).withValues(alpha: 0.15),
+                      color: const Color(0xFF1565C0).withOpacity(0.15),
                       blurRadius: 30,
                       offset: const Offset(0, 15),
                     ),
                     BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: Colors.white.withOpacity(0.5),
                       blurRadius: 10,
                       offset: const Offset(-5, -5),
                     ),
@@ -225,9 +225,7 @@ class _HomePageState extends State<HomePage> {
                               "Learn more about our services and how we can help you find the perfect companion.",
                               style: TextStyle(
                                 fontSize: 16,
-                                color: const Color(
-                                  0xFF1E1E1E,
-                                ).withValues(alpha: 0.7),
+                                color: const Color(0xFF1E1E1E).withOpacity(0.7),
                                 height: 1.5,
                               ),
                             ),
@@ -260,7 +258,7 @@ class _HomePageState extends State<HomePage> {
                             elevation: 5,
                             shadowColor: const Color(
                               0xFF1565C0,
-                            ).withValues(alpha: 0.4),
+                            ).withOpacity(0.4),
                           ),
                           child: const Text(
                             "About Us",
@@ -298,12 +296,12 @@ class _HomePageState extends State<HomePage> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1565C0).withValues(alpha: 0.15),
+                      color: const Color(0xFF1565C0).withOpacity(0.15),
                       blurRadius: 30,
                       offset: const Offset(0, 15),
                     ),
                     BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: Colors.white.withOpacity(0.5),
                       blurRadius: 10,
                       offset: const Offset(-5, -5),
                     ),
@@ -359,9 +357,7 @@ class _HomePageState extends State<HomePage> {
                               textAlign: TextAlign.end,
                               style: TextStyle(
                                 fontSize: 16,
-                                color: const Color(
-                                  0xFF1E1E1E,
-                                ).withValues(alpha: 0.7),
+                                color: const Color(0xFF1E1E1E).withOpacity(0.7),
                                 height: 1.5,
                               ),
                             ),
@@ -394,7 +390,7 @@ class _HomePageState extends State<HomePage> {
                             elevation: 5,
                             shadowColor: const Color(
                               0xFF1565C0,
-                            ).withValues(alpha: 0.4),
+                            ).withOpacity(0.4),
                           ),
                           child: const Text(
                             "Shop Us",
@@ -454,9 +450,9 @@ class _HomePageState extends State<HomePage> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withValues(alpha: 0.3),
-                  Colors.black.withValues(alpha: 0.6),
-                  const Color(0xFF1565C0).withValues(alpha: 0.9),
+                  Colors.black.withOpacity(0.3),
+                  Colors.black.withOpacity(0.6),
+                  const Color(0xFF1E1E1E).withOpacity(0.7),
                 ],
                 stops: const [0.0, 0.5, 1.0],
               ),
@@ -484,7 +480,7 @@ class _HomePageState extends State<HomePage> {
                   "Premium food, toys, and accessories delivered to your doorstep.",
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: Colors.white.withOpacity(0.9),
                     height: 1.5,
                   ),
                 ),
@@ -580,7 +576,7 @@ class _HomePageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1565C0).withValues(alpha: 0.08),
+                      color: const Color(0xFF1565C0).withOpacity(0.08),
                       blurRadius: 24,
                       offset: const Offset(0, 12),
                     ),
@@ -595,7 +591,7 @@ class _HomePageState extends State<HomePage> {
                       child: Icon(
                         Icons.format_quote_rounded,
                         size: 40,
-                        color: Colors.grey.withValues(alpha: 0.1),
+                        color: Colors.grey.withOpacity(0.1),
                       ),
                     ),
                     Column(
@@ -762,7 +758,7 @@ class _HomePageState extends State<HomePage> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1565C0).withValues(alpha: 0.08),
+                      color: const Color(0xFF1565C0).withOpacity(0.08),
                       blurRadius: 24,
                       offset: const Offset(0, 12),
                     ),
@@ -774,9 +770,7 @@ class _HomePageState extends State<HomePage> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Color(
-                          item['color'] as int,
-                        ).withValues(alpha: 0.5),
+                        color: Color(item['color'] as int).withOpacity(0.5),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(

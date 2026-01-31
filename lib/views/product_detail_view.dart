@@ -6,7 +6,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/product.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
-import '../services/favorite_service.dart';
+import '../providers/favorite_provider.dart';
+import 'payment_view.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Product product;
@@ -19,37 +20,6 @@ class ProductDetailPage extends StatefulWidget {
 
 class _ProductDetailPageState extends State<ProductDetailPage> {
   int _quantity = 1;
-  bool _isFavorite = false;
-  bool _isLoadingFav = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkFavoriteStatus();
-  }
-
-  Future<void> _checkFavoriteStatus() async {
-    try {
-      final localFavs = await FavoriteService.getCachedFavorites();
-      if (mounted) {
-        setState(() {
-          _isFavorite = localFavs.contains(widget.product.id);
-          _isLoadingFav = false;
-        });
-      }
-
-      // Async sync
-      FavoriteService.fetchFavorites().then((apiFavs) {
-        if (mounted) {
-          setState(() {
-            _isFavorite = apiFavs.contains(widget.product.id);
-          });
-        }
-      });
-    } catch (e) {
-      if (mounted) setState(() => _isLoadingFav = false);
-    }
-  }
 
   Future<void> _toggleFavorite() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -63,19 +33,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       return;
     }
 
-    setState(() {
-      _isFavorite = !_isFavorite;
-    });
-
-    try {
-      if (_isFavorite) {
-        await FavoriteService.addFavorite(widget.product.id);
-      } else {
-        await FavoriteService.removeFavorite(widget.product.id);
-      }
-    } catch (e) {
-      debugPrint("Error toggling favorite: $e");
-    }
+    final favoriteProvider = Provider.of<FavoriteProvider>(
+      context,
+      listen: false,
+    );
+    await favoriteProvider.toggleFavorite(widget.product.id);
   }
 
   Future<void> _addToCart() async {
@@ -102,16 +64,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     try {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
 
-      // Add product
-      await cartProvider.addToCart(widget.product.id);
-
-      // If higher quantity needed, we can call updateQuantity
-      // However, addToCart logic in provider currently is adding 1 item.
-      // A better API would be addToCart(id, quantity).
-      // Since I implemented updateQuantity separately, I can call it if needed.
-      if (_quantity > 1) {
-        await cartProvider.updateQuantity(widget.product.id, _quantity);
-      }
+      // Add product with specific quantity in one shot
+      await cartProvider.addToCart(widget.product.id, quantity: _quantity);
 
       if (!mounted) return;
       Navigator.pop(context);
@@ -133,6 +87,45 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         text: 'Failed to add to cart.',
       );
     }
+  }
+
+  Future<void> _buyNow() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (!authProvider.isAuthenticated) {
+      QuickAlert.show(
+        context: context,
+        type: QuickAlertType.warning,
+        title: 'Login Required',
+        text: 'Please login to proceed with purchase.',
+        confirmBtnText: 'OK',
+      );
+      return;
+    }
+
+    // Add to cart first to ensure it's recorded on the server for checkout
+    try {
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      await cartProvider.addToCart(widget.product.id, quantity: _quantity);
+    } catch (e) {
+      debugPrint("Buy Now - Add to Cart failed: $e");
+      // Continue anyway, as the checkoutItems are used locally for display
+    }
+
+    List<Map<String, dynamic>> checkoutItems = [
+      {
+        'product_id': widget.product.id,
+        'product_name': widget.product.productName,
+        'price': widget.product.price,
+        'quantity': _quantity,
+        'pet_type': widget.product.petType,
+        'image_url': widget.product.imageUrl,
+      },
+    ];
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PaymentPage(cartItems: checkoutItems)),
+    );
   }
 
   @override
@@ -291,24 +284,58 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      GestureDetector(
-                        onTap: _toggleFavorite,
-                        child: CircleAvatar(
-                          radius: 28,
-                          backgroundColor: Colors.transparent,
-                          child: _isLoadingFav
-                              ? const CircularProgressIndicator(strokeWidth: 2)
-                              : Icon(
-                                  _isFavorite
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: _isFavorite
-                                      ? Colors.red
-                                      : Colors.black54,
-                                ),
-                        ),
+                      Consumer<FavoriteProvider>(
+                        builder: (context, favProvider, child) {
+                          final isFavorite = favProvider.isFavorite(
+                            widget.product.id,
+                          );
+                          return GestureDetector(
+                            onTap: _toggleFavorite,
+                            child: CircleAvatar(
+                              radius: 28,
+                              backgroundColor: Colors.transparent,
+                              child: favProvider.isLoading
+                                  ? const CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    )
+                                  : Icon(
+                                      isFavorite
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color: isFavorite
+                                          ? Colors.red
+                                          : Colors.black54,
+                                    ),
+                            ),
+                          );
+                        },
                       ),
                     ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _buyNow,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        "Buy Now",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),

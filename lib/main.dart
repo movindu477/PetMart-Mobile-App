@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/cart_provider.dart';
+import 'providers/favorite_provider.dart';
 import 'views/login_view.dart';
 import 'views/home_view.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Stripe
+  Stripe.publishableKey =
+      "pk_test_51Sp3QjIp8tVJdR5V9PCjO0JS9GE9NgMxC7ZKQBc7212EisrOSr2hm7ojWk9ytpdEL76rPnbE19DNOTMAFNUIu0Dm00qLZE0Q9g";
+  await Stripe.instance.applySettings();
 
   // Clearing image cache to ensure fresh assets are loaded
   PaintingBinding.instance.imageCache.clear();
@@ -24,6 +31,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProvider(create: (_) => FavoriteProvider()),
       ],
       child: const PetShopApp(),
     ),
@@ -48,12 +56,19 @@ class PetShopApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Pet Shop',
+      title: 'Pet Mart',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
         useMaterial3: true,
       ),
-      home: const SplashScreen(),
+      home: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          // If we are still in initial splash/loading, let the splash handle it.
+          // However, if splash is done and isAuthenticated changes to false,
+          // we should go back to LoginPage.
+          return const SplashScreen();
+        },
+      ),
     );
   }
 }
@@ -108,34 +123,70 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _startSplashing() async {
-    _controller.forward();
+    try {
+      _controller.forward();
 
-    // Check login status while splashing
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.checkLoginStatus();
+      // Check login status while splashing
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    await Future.delayed(const Duration(milliseconds: 4500));
-    if (mounted) {
-      // Determine where to go based on auth status
-      if (authProvider.isAuthenticated) {
+      // We wait for both the check to finish AND the animation time to pass
+      await Future.wait([
+        authProvider.checkLoginStatus().catchError(
+          (e) => debugPrint("Check error: $e"),
+        ),
+        Future.delayed(const Duration(milliseconds: 4500)),
+      ]).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint("Splash timeout");
+          return [null, null];
+        },
+      );
+
+      if (mounted) {
+        // Determine where to go based on auth status
+        if (authProvider.isAuthenticated) {
+          // Sync all data in background
+          Future.microtask(() {
+            Provider.of<CartProvider>(context, listen: false).fetchCart();
+            Provider.of<FavoriteProvider>(
+              context,
+              listen: false,
+            ).fetchFavorites();
+            Provider.of<ProductProvider>(
+              context,
+              listen: false,
+            ).fetchProducts();
+          });
+
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const HomePage(),
+              transitionDuration: const Duration(milliseconds: 800),
+              transitionsBuilder: (_, a, __, c) =>
+                  FadeTransition(opacity: a, child: c),
+            ),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const LoginPage(),
+              transitionDuration: const Duration(milliseconds: 800),
+              transitionsBuilder: (_, a, __, c) =>
+                  FadeTransition(opacity: a, child: c),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Critical splash error: $e");
+      // Fallback navigation
+      if (mounted) {
         Navigator.pushReplacement(
           context,
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const HomePage(),
-            transitionDuration: const Duration(milliseconds: 800),
-            transitionsBuilder: (_, a, __, c) =>
-                FadeTransition(opacity: a, child: c),
-          ),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const LoginPage(),
-            transitionDuration: const Duration(milliseconds: 800),
-            transitionsBuilder: (_, a, __, c) =>
-                FadeTransition(opacity: a, child: c),
-          ),
+          MaterialPageRoute(builder: (_) => const LoginPage()),
         );
       }
     }
@@ -166,18 +217,12 @@ class _SplashScreenState extends State<SplashScreen>
           Positioned(
             top: -100,
             right: -100,
-            child: _buildCircle(
-              300,
-              const Color(0xFFBBDEFB).withValues(alpha: 0.3),
-            ),
+            child: _buildCircle(300, const Color(0xFFBBDEFB).withOpacity(0.3)),
           ),
           Positioned(
             bottom: -50,
             left: -50,
-            child: _buildCircle(
-              200,
-              const Color(0xFFBBDEFB).withValues(alpha: 0.3),
-            ),
+            child: _buildCircle(200, const Color(0xFFBBDEFB).withOpacity(0.3)),
           ),
           Center(
             child: Column(
@@ -194,7 +239,7 @@ class _SplashScreenState extends State<SplashScreen>
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.blue.withValues(alpha: 0.15),
+                            color: Colors.blue.withOpacity(0.15),
                             blurRadius: 30,
                             offset: const Offset(0, 10),
                             spreadRadius: 5,

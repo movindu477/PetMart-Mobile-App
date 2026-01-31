@@ -1,9 +1,6 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import '../models/cart_item.dart';
-import '../services/api_service.dart';
-import '../services/database_helper.dart';
+import '../services/cart_service.dart';
 
 class CartProvider with ChangeNotifier {
   List<CartItem> _cartItems = [];
@@ -24,116 +21,58 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final headers = await ApiService.authHeaders();
-      // Check if online
-      if (headers.containsKey('Authorization')) {
-        final response = await http.get(
-          Uri.parse('${ApiService.baseUrl}/cart'),
-          headers: headers,
-        );
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          if (data['success'] == true) {
-            final List<dynamic> list = data['data'];
-
-            _cartItems = list.map((item) {
-              return CartItem(
-                productId: item['pet_id'],
-                productName: item['product_name'],
-                price: (item['price'] is int)
-                    ? (item['price'] as int).toDouble()
-                    : (item['price'] is String)
-                    ? double.parse(item['price'])
-                    : item['price'],
-                imageUrl: item['image_url'],
-                quantity: (item['quantity'] is int)
-                    ? item['quantity']
-                    : int.parse(item['quantity'].toString()),
-                petType: item['pet_type'] ?? '',
-                accessoriesType: item['accessories_type'] ?? '',
-              );
-            }).toList();
-
-            // Cache to SQFlite
-            await DatabaseHelper().clearCart();
-            for (var item in _cartItems) {
-              await DatabaseHelper().insertCartItem(item);
-            }
-          }
-        }
-      } else {
-        // Load from local DB if no token
-        _cartItems = await DatabaseHelper().getCartItems();
-      }
+      final List<dynamic> data = await CartService.fetchCart();
+      _cartItems = data.map((item) => CartItem.fromJson(item)).toList();
+      debugPrint(
+        "--- CART PROVIDER: Fetched ${_cartItems.length} items from API",
+      );
     } catch (e) {
       debugPrint('Error fetching cart: $e');
-      _cartItems = await DatabaseHelper().getCartItems();
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  Future<void> addToCart(int productId) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/cart'),
-        headers: await ApiService.authHeaders(),
-        body: jsonEncode({'pet_id': productId}),
-      );
+  Future<void> clearLocalCart() async {
+    _cartItems = [];
+    notifyListeners();
+  }
 
-      if (response.statusCode == 200) {
-        await fetchCart(); // Refresh cart
-      }
+  Future<void> addToCart(int petId, {int quantity = 1}) async {
+    try {
+      await CartService.addToCart(petId, quantity: quantity);
+      await fetchCart();
     } catch (e) {
       debugPrint("Add to cart error: $e");
+      rethrow;
     }
   }
 
-  Future<void> removeFromCart(int productId) async {
+  Future<void> removeFromCart(int petId) async {
     try {
-      final response = await http.delete(
-        Uri.parse('${ApiService.baseUrl}/cart/$productId'),
-        headers: await ApiService.authHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        _cartItems.removeWhere((item) => item.productId == productId);
-        notifyListeners();
-        // Also remove from local DB
-        // But fetchCart handles full sync usually.
-        // For direct DB manipulation:
-        // await DatabaseHelper().deleteCartItem(productId); // Needs logic to find ID by productId
-
-        await fetchCart(); // Reliable sync
-      }
+      await CartService.removeFromCart(petId);
+      _cartItems.removeWhere((item) => item.productId == petId);
+      notifyListeners();
     } catch (e) {
       debugPrint("Remove from cart error: $e");
+      rethrow;
     }
   }
 
-  Future<void> updateQuantity(int productId, int quantity) async {
+  Future<void> updateQuantity(int petId, int quantity) async {
     if (quantity < 1) return;
-
     try {
-      final response = await http.put(
-        Uri.parse('${ApiService.baseUrl}/cart/$productId'),
-        headers: await ApiService.authHeaders(),
-        body: jsonEncode({'quantity': quantity}),
+      // Fallback strategy: Remove the item first, then add it back with the absolute new quantity.
+      // This solves the issue where /cart/add is additive and /cart/update is 404.
+      debugPrint(
+        "--- CART PROVIDER: Syncing quantity for $petId to $quantity (Remove then Add)",
       );
 
-      if (response.statusCode == 200) {
-        // Optimistic local update
-        final index = _cartItems.indexWhere(
-          (item) => item.productId == productId,
-        );
-        if (index != -1) {
-          _cartItems[index].quantity = quantity;
-          notifyListeners();
-        }
-        await fetchCart(); // Ensure sync
-      }
+      await CartService.removeFromCart(petId);
+      await CartService.addToCart(petId, quantity: quantity);
+
+      await fetchCart();
     } catch (e) {
       debugPrint("Update cart error: $e");
     }
