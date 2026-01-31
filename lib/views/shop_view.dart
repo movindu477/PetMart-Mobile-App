@@ -351,7 +351,7 @@ class _ShopPageState extends State<ShopPage> {
 
   Widget _buildHeroSection() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       height: 180,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
@@ -412,9 +412,9 @@ class _ShopPageState extends State<ShopPage> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.transparent,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.white.withOpacity(0.3)),
+                      border: Border.all(color: Colors.white.withOpacity(0.5)),
                     ),
                     child: const Text(
                       "PREMIUM COLLECTION",

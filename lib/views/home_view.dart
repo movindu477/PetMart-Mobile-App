@@ -500,29 +500,21 @@ class _HomePageState extends State<HomePage> {
         "comment":
             "Absolutely amazing service! My order arrived in just 2 days.",
         "rating": 5,
-        "color": 0xFFE3F2FD, // Light Blue
-        "textColor": 0xFF1565C0,
       },
       {
         "name": "John Doe",
         "comment": "The app is so easy to use. I found everything I needed.",
         "rating": 5,
-        "color": 0xFFF3E5F5, // Light Purple
-        "textColor": 0xFF7B1FA2,
       },
       {
         "name": "Emily Rogers",
         "comment": "My golden retriever loves the new toys. Highly recommend!",
         "rating": 4,
-        "color": 0xFFE8F5E9, // Light Green
-        "textColor": 0xFF2E7D32,
       },
       {
         "name": "Michael Brown",
         "comment": "Premium quality food. My cat is very picky but loves this.",
         "rating": 5,
-        "color": 0xFFFFEBEE, // Light Red
-        "textColor": 0xFFC62828,
       },
     ];
 
@@ -536,12 +528,12 @@ class _HomePageState extends State<HomePage> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2FD),
+                  color: Colors.black,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.favorite_rounded,
-                  color: Color(0xFF1565C0),
+                  color: Colors.white,
                   size: 20,
                 ),
               ),
@@ -560,7 +552,7 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(height: 20),
         SizedBox(
-          height: 180,
+          height: 200,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             scrollDirection: Axis.horizontal,
@@ -569,16 +561,20 @@ class _HomePageState extends State<HomePage> {
             itemBuilder: (context, index) {
               final review = reviews[index];
               return Container(
-                width: 280,
+                width: 300,
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
+                  ),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF1565C0).withOpacity(0.08),
-                      blurRadius: 24,
-                      offset: const Offset(0, 12),
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
@@ -590,8 +586,8 @@ class _HomePageState extends State<HomePage> {
                       top: 0,
                       child: Icon(
                         Icons.format_quote_rounded,
-                        size: 40,
-                        color: Colors.grey.withOpacity(0.1),
+                        size: 50,
+                        color: Colors.white.withOpacity(0.1),
                       ),
                     ),
                     Column(
@@ -600,19 +596,28 @@ class _HomePageState extends State<HomePage> {
                         Row(
                           children: [
                             Container(
-                              width: 44,
-                              height: 44,
+                              width: 48,
+                              height: 48,
                               decoration: BoxDecoration(
-                                color: Color(review['color'] as int),
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF6B6B6B),
+                                    Color(0xFF4A4A4A),
+                                  ],
+                                ),
                                 shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 2,
+                                ),
                               ),
                               child: Center(
                                 child: Text(
                                   (review['name'] as String)[0],
-                                  style: TextStyle(
-                                    color: Color(review['textColor'] as int),
+                                  style: const TextStyle(
+                                    color: Colors.white,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 18,
+                                    fontSize: 20,
                                   ),
                                 ),
                               ),
@@ -626,11 +631,11 @@ class _HomePageState extends State<HomePage> {
                                     review['name'] as String,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      color: Color(0xFF1E1E1E),
+                                      fontSize: 16,
+                                      color: Colors.white,
                                     ),
                                   ),
-                                  const SizedBox(height: 3),
+                                  const SizedBox(height: 4),
                                   Row(
                                     children: List.generate(
                                       5,
@@ -639,7 +644,7 @@ class _HomePageState extends State<HomePage> {
                                         size: 16,
                                         color: i < (review['rating'] as int)
                                             ? const Color(0xFFFFB300)
-                                            : Colors.grey.shade200,
+                                            : Colors.white.withOpacity(0.2),
                                       ),
                                     ),
                                   ),
@@ -654,9 +659,9 @@ class _HomePageState extends State<HomePage> {
                           child: Text(
                             review['comment'] as String,
                             style: TextStyle(
-                              color: Colors.grey[700],
+                              color: Colors.white.withOpacity(0.85),
                               fontSize: 14,
-                              height: 1.5,
+                              height: 1.6,
                               fontWeight: FontWeight.w400,
                             ),
                             maxLines: 3,
